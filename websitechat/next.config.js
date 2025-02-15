@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  images: {
-    unoptimized: true,
-  },
+  // Empty config is fine for Vercel deployment
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig
