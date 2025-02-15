@@ -8,7 +8,7 @@ interface ChatMessage {
 
 // Create an OpenAI API client
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || ''
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 // Add context about Russell
@@ -75,7 +75,7 @@ const SYSTEM_MESSAGE = {
     Remember to keep the conversation flowing naturally and avoid overwhelming with information all at once.`
   };
 
-// Set the runtime to edge
+// IMPORTANT: Set the runtime to edge
 export const runtime = 'edge';
 
 export async function POST(req: Request) {
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    // Extract the messages from the request
+    // Extract the `messages` from the body of the request
     const { messages } = await req.json();
 
     // Add the system message at the start of the conversation
@@ -93,19 +93,22 @@ export async function POST(req: Request) {
       ...messages
     ];
 
-    // Create the stream
+    // Request the OpenAI API for the response
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       stream: true,
-      messages: messagesWithContext,
+      messages: messagesWithContext.map((message: any) => ({
+        content: message.content,
+        role: message.role,
+      })),
       temperature: 0.7,
       max_tokens: 500,
     });
 
     // Convert the response into a friendly text-stream
-    const stream = OpenAIStream(response);
+    const stream = OpenAIStream(response as any);
 
-    // Return the stream
+    // Respond with the stream
     return new StreamingTextResponse(stream);
   } catch (error: any) {
     console.error('Chat API error:', error);
