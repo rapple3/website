@@ -26,7 +26,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="min-h-screen bg-white sm:bg-gray-50 sm:grid sm:place-items-center">
+    <div className="min-h-[100dvh] bg-white sm:bg-gray-50 sm:grid sm:place-items-center">
       <div className="flex flex-col w-full h-screen bg-white sm:h-[600px] sm:max-w-2xl sm:rounded-xl sm:shadow-lg sm:m-4">
         <div className="p-4 border-b flex justify-between items-start sm:block">
           <div>
@@ -34,7 +34,7 @@ export default function Chat() {
             <p className="text-sm text-gray-500">AI-powered assistant with info about my background & experience</p>
           </div>
           <a 
-            href="https://www.linkedin.com/in/russell-apple/" 
+            href="https://www.linkedin.com/in/russellapple/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="sm:hidden text-blue-600 hover:text-blue-800"
