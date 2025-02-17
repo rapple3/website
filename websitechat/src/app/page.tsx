@@ -26,8 +26,25 @@ export default function Chat() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-white sm:bg-gray-50 sm:grid sm:place-items-center">
-      <div className="flex flex-col w-full h-screen bg-white sm:h-[600px] sm:max-w-2xl sm:rounded-xl sm:shadow-lg sm:m-4">
+    <div className="
+      min-h-[100dvh]    // Dynamic viewport height
+      h-[100dvh]        // Dynamic viewport height
+      bg-white 
+      sm:bg-gray-50 
+      sm:grid 
+      sm:place-items-center
+    ">
+      <div className="
+        flex flex-col
+        w-full
+        h-[100dvh]      // Dynamic viewport height on mobile
+        sm:h-[600px]    // Fixed height on desktop
+        bg-white
+        sm:max-w-2xl
+        sm:rounded-xl
+        sm:shadow-lg
+        sm:m-4
+      ">
         <div className="p-4 border-b flex justify-between items-start sm:block">
           <div>
             <h1 className="text-xl font-semibold">Ask About Russell Apple</h1>
