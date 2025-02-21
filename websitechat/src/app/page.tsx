@@ -26,14 +26,24 @@ function MessageComponent({ message }: { message: Message }) {
             message.role === 'user' ? 'text-white prose-headings:text-white prose-p:text-white prose-strong:text-white' : ''
           }`}
           components={{
-            p: ({node, ...props}) => <p className="m-0 font-normal" {...props} />,
-            ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
-            ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-            code: ({node, inline, ...props}) => (
-              inline 
-                ? <code className="bg-gray-100 dark:bg-gray-800 rounded px-1" {...props} />
-                : <code className="block bg-gray-100 dark:bg-gray-800 rounded p-2 my-2 whitespace-pre-wrap" {...props} />
-            ),
+            p: ({node, ...props}: any) => <p className="m-0 font-normal" {...props} />,
+            ul: ({node, ...props}: any) => <ul className="list-disc ml-4 mb-2" {...props} />,
+            ol: ({node, ...props}: any) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+            code: ({node, className, children, ...props}: any) => {
+              const match = /language-(\w+)/.exec(className || '');
+              return (
+                <code 
+                  className={`${
+                    match ? 'block' : 'inline'
+                  } bg-gray-100 dark:bg-gray-800 rounded ${
+                    match ? 'p-2 my-2' : 'px-1'
+                  }`} 
+                  {...props}
+                >
+                  {children}
+                </code>
+              );
+            }
           }}
         >
           {message.content}

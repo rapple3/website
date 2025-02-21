@@ -118,33 +118,7 @@ export default function AssistantChat() {
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {messages.map(m => (
-            <div key={m.id} 
-              className={`${m.role === 'user' ? 'text-right' : 'text-left'}`}>
-              <div className={`inline-block max-w-[85%] rounded-lg px-4 py-2 ${
-                m.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-              }`}>
-                <ReactMarkdown 
-                  className="prose dark:prose-invert"
-                  components={{
-                    p: ({node, ...props}) => <p className="mb-2" {...props} />,
-                    ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
-                    ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-                    code: ({node, inline, ...props}) => (
-                      inline 
-                        ? <code className="bg-gray-100 dark:bg-gray-800 rounded px-1" {...props} />
-                        : <code className="block bg-gray-100 dark:bg-gray-800 rounded p-2 my-2" {...props} />
-                    ),
-                  }}
-                >
-                  {m.content}
-                </ReactMarkdown>
-                {m.mode && (
-                  <span className="text-xs ml-2 opacity-50">
-                    ({m.mode})
-                  </span>
-                )}
-              </div>
-            </div>
+            <MessageComponent key={m.id} message={m} />
           ))}
           {isLoading && (
             <div className="text-left">
@@ -167,6 +141,48 @@ export default function AssistantChat() {
             placeholder={`Type your message... (${mode} mode)`}
           />
         </form>
+      </div>
+    </div>
+  );
+}
+
+function MessageComponent({ message }: { message: Message }) {
+  return (
+    <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div 
+        className={`${
+          message.role === 'user' 
+            ? 'bg-blue-500' 
+            : 'bg-gray-200 dark:bg-gray-700'
+        } rounded-lg px-4 py-2 max-w-[80%]`}
+      >
+        <ReactMarkdown 
+          className={`prose dark:prose-invert max-w-none text-base ${
+            message.role === 'user' ? 'text-white prose-headings:text-white prose-p:text-white prose-strong:text-white' : ''
+          }`}
+          components={{
+            p: ({node, ...props}: any) => <p className="m-0 font-normal" {...props} />,
+            ul: ({node, ...props}: any) => <ul className="list-disc ml-4 mb-2" {...props} />,
+            ol: ({node, ...props}: any) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+            code: ({node, className, children, ...props}: any) => {
+              const match = /language-(\w+)/.exec(className || '');
+              return (
+                <code 
+                  className={`${
+                    match ? 'block' : 'inline'
+                  } bg-gray-100 dark:bg-gray-800 rounded ${
+                    match ? 'p-2 my-2' : 'px-1'
+                  }`} 
+                  {...props}
+                >
+                  {children}
+                </code>
+              );
+            }
+          }}
+        >
+          {message.content}
+        </ReactMarkdown>
       </div>
     </div>
   );
