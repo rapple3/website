@@ -2,13 +2,46 @@
 
 import { useChat } from "ai/react";
 import React, { useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const suggestedQuestions = [
-  "What's his background in software development?",
-  "What are his key technical skills?",
+  "What's the story behind his transition from engineering to business?",
+  "What makes his combination of skills unique?",
   "What kind of projects has he worked on?",
   "What is he currently working on?",
 ];
+
+function MessageComponent({ message }: { message: Message }) {
+  return (
+    <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div 
+        className={`${
+          message.role === 'user' 
+            ? 'bg-blue-500' 
+            : 'bg-gray-200 dark:bg-gray-700'
+        } rounded-lg px-4 py-2 max-w-[80%]`}
+      >
+        <ReactMarkdown 
+          className={`prose dark:prose-invert max-w-none text-base ${
+            message.role === 'user' ? 'text-white prose-headings:text-white prose-p:text-white prose-strong:text-white' : ''
+          }`}
+          components={{
+            p: ({node, ...props}) => <p className="m-0 font-normal" {...props} />,
+            ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
+            ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+            code: ({node, inline, ...props}) => (
+              inline 
+                ? <code className="bg-gray-100 dark:bg-gray-800 rounded px-1" {...props} />
+                : <code className="block bg-gray-100 dark:bg-gray-800 rounded p-2 my-2 whitespace-pre-wrap" {...props} />
+            ),
+          }}
+        >
+          {message.content}
+        </ReactMarkdown>
+      </div>
+    </div>
+  );
+}
 
 export default function Chat() {
   const formRef = React.useRef<HTMLFormElement>(null);
@@ -88,16 +121,7 @@ export default function Chat() {
             </div>
           ) : (
             messages.map(m => (
-              <div key={m.id} 
-                className={`${m.role === 'user' ? 'text-right' : 'text-left'}`}>
-                <div className={`inline-block max-w-[85%] rounded-lg px-4 py-2 ${
-                  m.role === 'user' 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-900'
-                }`}>
-                  {m.content}
-                </div>
-              </div>
+              <MessageComponent key={m.id} message={m} />
             ))
           )}
         </div>

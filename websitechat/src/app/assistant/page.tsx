@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -37,7 +38,7 @@ export default function AssistantChat() {
         /(specific|details|project|experience at|when|dates|timeline)/i
       );
 
-      const endpoint = needsDetailedResponse ? '/api/assistant' : '/api/chat';
+      const endpoint = needsDetailedResponse ? '/api/assistant-wip' : '/api/assistant-wip';
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -50,10 +51,14 @@ export default function AssistantChat() {
 
       const data = await response.json();
       
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
       // Add assistant message
       const assistantMessage: Message = {
         role: 'assistant',
-        content: data.message,
+        content: data.message || 'Sorry, I encountered an error.',
         id: Date.now().toString(),
         mode: needsDetailedResponse ? 'detailed' : 'quick'
       };
@@ -61,6 +66,14 @@ export default function AssistantChat() {
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error:', error);
+      // Add error message to chat
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        id: Date.now().toString(),
+        mode: mode
+      };
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +123,21 @@ export default function AssistantChat() {
               <div className={`inline-block max-w-[85%] rounded-lg px-4 py-2 ${
                 m.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
               }`}>
-                {m.content}
+                <ReactMarkdown 
+                  className="prose dark:prose-invert"
+                  components={{
+                    p: ({node, ...props}) => <p className="mb-2" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc ml-4 mb-2" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal ml-4 mb-2" {...props} />,
+                    code: ({node, inline, ...props}) => (
+                      inline 
+                        ? <code className="bg-gray-100 dark:bg-gray-800 rounded px-1" {...props} />
+                        : <code className="block bg-gray-100 dark:bg-gray-800 rounded p-2 my-2" {...props} />
+                    ),
+                  }}
+                >
+                  {m.content}
+                </ReactMarkdown>
                 {m.mode && (
                   <span className="text-xs ml-2 opacity-50">
                     ({m.mode})
