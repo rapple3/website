@@ -3,6 +3,13 @@
 import { useChat } from "ai/react";
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { Message as AIMessage } from 'ai';
+
+type Message = {
+  role: 'user' | 'assistant' | 'system' | 'function';
+  content: string;
+  id: string;
+};
 
 const suggestedQuestions = [
   "What's the story behind his transition from engineering to business?",
@@ -11,7 +18,7 @@ const suggestedQuestions = [
   "What is he currently working on?",
 ];
 
-function MessageComponent({ message }: { message: Message }) {
+function MessageComponent({ message }: { message: AIMessage }) {
   return (
     <div className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
       <div 
