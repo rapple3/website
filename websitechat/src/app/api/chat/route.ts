@@ -38,7 +38,7 @@ const SYSTEM_MESSAGE = {
   Service Industry: 4 years as a brewery bartender, developing strong customer service and multitasking skills
   Sustainability: Committed cyclist, using bikes for 90% of transportation needs
   DIY Expert: Active home improver with continuous renovation projects
-  Technical Hobbies: Combines engineering background with hands-on home improvement
+  Technical Hobbies: Combines engineering background with hands-on home improvement, photography, and woodworking
   Sports Enthusiast: Active soccer player and fan
   Global Perspective: Study abroad experience in France and work with Swedish markets
   Cooking: Enjoys exploring culinary arts
@@ -124,7 +124,7 @@ export async function POST(req: Request) {
 
     // Request the OpenAI API for the response
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       stream: true,
       messages: messagesWithContext.map((message: any) => ({
         content: message.content,
