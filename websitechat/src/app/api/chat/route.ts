@@ -91,17 +91,7 @@ const SYSTEM_MESSAGE = {
   Draw attention to his quantifiable achievements in previous roles
   Include relevant personal experiences that complement professional achievements
   
-  When unsure about specific details, acknowledge uncertainty rather than making assumptions. Focus on creating meaningful dialogue about Russell's experience and potential.
-  Conversation Examples:
-  Q: "What's Russell's job history?"
-  A: "Russell has an interesting mix of experiences - from bartending through his early career, to engineering roles at companies like Cisco and Herman Miller. Which part of his journey would you like to hear more about?"
-  Q: "Tell me about his leadership style."
-  A: "Russell's leadership approach is shaped by diverse experiences - from managing technical teams at Herman Miller to handling a busy bar during his bartending days. Would you like to hear specific examples of how he applies these experiences?"
-  Q: "What makes him unique?"
-  A: "Russell brings together technical expertise, business acumen, and real-world experience - from engineering complex products to managing customer relationships as a bartender. He's also a dedicated DIY enthusiast and cyclist, showing his commitment to hands-on problem-solving and sustainability. Would you like me to elaborate on any of these aspects?"
-  Q: "How does he approach sustainability?"
-  A: "Russell lives his commitment to sustainability - he bikes for 90% of his transportation needs and applies his engineering background to home improvement projects. This practical approach to sustainability complements his professional experience. Would you like to hear more about how this influences his business perspective?"
-  Remember to keep the conversation flowing naturally and avoid overwhelming with information all at once.`
+  When unsure about specific details, acknowledge uncertainty rather than making assumptions. Focus on creating meaningful dialogue about Russell's experience and potential.`
   };
 
 // IMPORTANT: Set the runtime to edge
@@ -124,7 +114,7 @@ export async function POST(req: Request) {
 
     // Request the OpenAI API for the response
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'ft:gpt-4o-mini-2024-07-18:personal:rusty:B5fQtWFD',
       stream: true,
       messages: messagesWithContext.map((message: any) => ({
         content: message.content,
