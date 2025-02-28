@@ -15,6 +15,44 @@ export default function AssistantChat() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [mode, setMode] = useState<'quick' | 'detailed'>('quick');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    console.log('Attempting to scroll to bottom');
+    console.log('Container height:', messagesContainerRef.current?.scrollHeight);
+    
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      console.log('Set scrollTop to:', messagesContainerRef.current.scrollHeight);
+    }
+    
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'auto' });
+      console.log('Scrolled element into view');
+    }
+  };
+
+  // Scroll to bottom when messages change
+  React.useEffect(() => {
+    // Immediate scroll
+    scrollToBottom();
+    
+    // And again after a short delay to ensure content is rendered
+    const timeoutId = setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+    
+    // And again after a longer delay for images or other content
+    const longTimeoutId = setTimeout(() => {
+      scrollToBottom();
+    }, 500);
+    
+    return () => {
+      clearTimeout(timeoutId);
+      clearTimeout(longTimeoutId);
+    };
+  }, [messages, isLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +69,9 @@ export default function AssistantChat() {
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
+    
+    // Force scroll after adding user message
+    setTimeout(scrollToBottom, 50);
 
     try {
       // Determine if we need detailed response
@@ -64,6 +105,9 @@ export default function AssistantChat() {
       };
 
       setMessages(prev => [...prev, assistantMessage]);
+      
+      // Force scroll after adding assistant message
+      setTimeout(scrollToBottom, 50);
     } catch (error) {
       console.error('Error:', error);
       // Add error message to chat
@@ -74,6 +118,9 @@ export default function AssistantChat() {
         mode: mode
       };
       setMessages(prev => [...prev, errorMessage]);
+      
+      // Force scroll after adding error message
+      setTimeout(scrollToBottom, 50);
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +163,10 @@ export default function AssistantChat() {
           </p>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+        >
           {messages.map(m => (
             <MessageComponent key={m.id} message={m} />
           ))}
@@ -131,6 +181,7 @@ export default function AssistantChat() {
               </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 border-t">

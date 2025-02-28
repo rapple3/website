@@ -23,7 +23,7 @@ const SYSTEM_MESSAGE = {
   Feel free to ask follow-up questions to guide the conversation
   When listing experience, encourage exploration rather than dumping all information at once
   
-  Quick Reference - Career Timeline:
+  Quick Reference - Career Timeline: (it is currently Spring 2025)
   
   Current: MBA Student at Georgia Tech (2023-2025)
   Cisco Systems: MBA Finance Intern (Summer 2024)
