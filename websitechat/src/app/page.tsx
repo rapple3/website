@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "ai/react";
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message as AIMessage } from 'ai';
 
@@ -61,8 +61,8 @@ function MessageComponent({ message }: { message: AIMessage }) {
 }
 
 export default function Chat() {
-  const formRef = React.useRef<HTMLFormElement>(null);
-  const messagesEndRef = React.useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const { messages, input, handleInputChange, handleSubmit, setInput } = useChat();
   const [clickedQuestion, setClickedQuestion] = useState<string | null>(null);
 
@@ -131,43 +131,7 @@ export default function Chat() {
             </div>
           ) : (
             messages.map(m => (
-              <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} mb-4`}>
-                <div 
-                  className={`${
-                    m.role === 'user' 
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-200'
-                  } rounded-lg px-4 py-2 max-w-[80%]`}
-                >
-                  <ReactMarkdown 
-                    className={`prose max-w-none text-base ${
-                      m.role === 'user' ? 'text-white prose-headings:text-white prose-p:text-white prose-strong:text-white' : ''
-                    }`}
-                    components={{
-                      p: ({node, ...props}: any) => <p className="m-0 font-normal" {...props} />,
-                      ul: ({node, ...props}: any) => <ul className="list-disc ml-4 mb-2" {...props} />,
-                      ol: ({node, ...props}: any) => <ol className="list-decimal ml-4 mb-2" {...props} />,
-                      code: ({node, className, children, ...props}: any) => {
-                        const match = /language-(\w+)/.exec(className || '');
-                        return (
-                          <code 
-                            className={`${
-                              match ? 'block' : 'inline'
-                            } bg-gray-100 rounded ${
-                              match ? 'p-2 my-2' : 'px-1'
-                            }`} 
-                            {...props}
-                          >
-                            {children}
-                          </code>
-                        );
-                      }
-                    }}
-                  >
-                    {m.content}
-                  </ReactMarkdown>
-                </div>
-              </div>
+              <MessageComponent key={m.id} message={m} />
             ))
           )}
           <div ref={messagesEndRef} />
