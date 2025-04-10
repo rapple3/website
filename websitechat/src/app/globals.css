@@ -119,3 +119,164 @@ body {
 .dark .chat-message * {
   color: white !important;
 }
+
+/* Styles for @silk-hq/components BottomSheet */
+.BottomSheet-view {
+   /* SELF-LAYOUT */
+   z-index: 100; /* Ensure it's above other content, adjust if needed */
+   /* Adding 60px to make it fully visible below iOS Safari's bottom UI */
+   /* Note: --silk-100-lvh-dvh-pct might need the Silk context provider,
+      using a fallback/alternative for now */
+   height: calc(100% + 60px); /* Adjust as needed */
+}
+
+.BottomSheet-content {
+   /* SELF-LAYOUT */
+   max-width: 710px; /* Or your desired max width */
+   margin-left: auto;
+   margin-right: auto;
+   height: auto;
+   min-height: 200px; /* Example minimum height */
+   padding: 1.5rem; /* Add some padding */
+   padding-bottom: calc(env(safe-area-inset-bottom) + 1.5rem); /* Adjust for safe areas */
+}
+
+.BottomSheet-bleedingBackground {
+   /* APPEARANCE */
+   border-top-left-radius: 1rem; /* Use your theme's radius if available */
+   border-top-right-radius: 1rem;
+   background-color: white;
+   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1); /* Example shadow */
+}
+/* Add a backdrop style */
+.BottomSheet-backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Styles for @silk-hq/components PageFromBottom */
+.PageFromBottom-view {
+   /* SELF-LAYOUT */
+   z-index: 100; /* Ensure it's above other content, adjust if needed */
+   /* Adding 60px to make it fully visible below iOS Safari's
+    bottom UI - may need adjustment or Silk provider */
+   height: calc(100% + 60px); /* Adjust as needed, consider --silk-100-lvh-dvh-pct if available */
+   top: env(safe-area-inset-top, 0px);
+   bottom: initial;
+}
+
+.PageFromBottom-content {
+   /* SELF-LAYOUT */
+   width: 100%;
+   height: 100%;
+
+   /* APPEARANCE */
+   background-color: white;
+   /* box-shadow: var(--shadow-4);  Optional: Add shadow if desired */
+
+   /* INNER-LAYOUT */
+   display: grid;
+   grid-template-rows: max-content max-content 1fr; /* Color bar, Top bar, Content area */
+}
+
+.PageFromBottom-topBar {
+   /* SELF-LAYOUT */
+   width: 100%;
+   /* height: var(--size-16); Use a fixed height e.g., 4rem */
+   height: 4rem; 
+
+   /* APPEARANCE */
+   border-bottom: 1px solid #e5e7eb; /* Example border color */
+   /* background-color: var(--white); */
+   background-color: white;
+
+   /* INNER-LAYOUT */
+   /* padding-inline: var(--size-8); Use fixed padding e.g., 1.5rem */
+   padding-left: 1.5rem;
+   padding-right: 1.5rem;
+   display: grid; /* Use flex might be easier for alignment */
+   align-items: center;
+}
+
+.PageFromBottom-dismissTrigger {
+   /* SELF-LAYOUT */
+   justify-self: end; /* Aligns to the right */
+   align-self: center;
+
+   /* APPEARANCE */
+   border-radius: 0.375rem; /* Example radius */
+   outline-offset: 2px;
+   border: none;
+   appearance: none;
+   background-color: transparent;
+   cursor: pointer;
+
+   /* INNER-LAYOUT */
+   padding: 0.5rem 0.75rem; /* Add some padding */
+
+   /* TEXT */
+   /* font-size: var(--font-size-4); */
+   font-size: 0.875rem; /* Example size */
+   /* font-weight: var(--font-weight-6); */
+   font-weight: 600; /* Example weight */
+   /* color: var(--gray-9); */
+   color: #1f2937; /* Example color */
+   transition: background-color 0.2s;
+}
+
+.PageFromBottom-dismissTrigger:hover {
+  background-color: #f3f4f6; /* Example hover bg */
+}
+
+/* Adjust backdrop if needed */
+.PageFromBottom-backdrop {
+  background-color: rgba(0, 0, 0, 0.1); /* Subtle backdrop */
+}
+
+/* Styles for @silk-hq/components DetachedSheet */
+.DetachedSheet-view {
+   /* SELF-LAYOUT */
+   z-index: 100; /* Ensure it's above other content */
+   /* Adding 60px - may need adjustment or Silk provider */
+   height: calc(100% + 60px); /* Adjust as needed, consider --silk-100-lvh-dvh-pct */
+}
+/* Style for centered content on larger viewports */
+.DetachedSheet-view.contentPlacement-center {
+   height: 100vh; /* Full viewport height when centered */
+}
+
+.DetachedSheet-content {
+   /* SELF-LAYOUT */
+   max-width: 650px; /* Max width from example */
+   height: auto;
+   min-height: 200px; /* Example min height */
+   margin-left: auto;  /* Center align */
+   margin-right: auto; /* Center align */
+
+   /* APPEARANCE */
+   background-color: transparent; /* Outer content is transparent */
+
+   /* INNER-LAYOUT */
+   padding: 6px; /* Padding from example */
+}
+
+.DetachedSheet-innerContent {
+   /* SELF-LAYOUT */
+   height: 100%;
+   width: 100%;
+
+   /* APPEARANCE */
+   /* border-radius: var(--radius-8); */
+   border-radius: 1rem; /* Example radius */
+   background-color: white;
+   /* box-shadow: var(--shadow-4); */
+   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 5px 10px rgba(0, 0, 0, 0.04); /* Example shadow */
+   overflow: hidden; /* Ensure content respects border radius */
+}
+
+/* Optional: Adjust backdrop for DetachedSheet if needed */
+.DetachedSheet-backdrop {
+  /* Example: Same as PageFromBottom or slightly different */
+  background-color: rgba(0, 0, 0, 0.1);
+  /* backdrop-filter: blur(2px); */ /* Optional blur */
+}
