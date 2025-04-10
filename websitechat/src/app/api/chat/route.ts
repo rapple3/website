@@ -114,7 +114,7 @@ export async function POST(req: Request) {
 
     // Request the OpenAI API for the response
     const response = await openai.chat.completions.create({
-      model: 'ft:gpt-4o-mini-2024-07-18:personal:rusty:B5fQtWFD',
+      model: 'gpt-4o-mini',
       stream: true,
       messages: messagesWithContext.map((message: any) => ({
         content: message.content,

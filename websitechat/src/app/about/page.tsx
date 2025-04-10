@@ -22,12 +22,14 @@ export default function About() {
     <div className="min-h-[calc(100dvh-6rem)] p-4 md:p-8 bg-gray-50 overflow-y-auto">
       <div className="max-w-4xl w-full mx-auto">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-          {/* Profile image - centered on mobile, sticky on desktop */}
-          <div className="flex justify-center md:justify-start md:sticky md:top-8 h-fit">
-            <div className="w-40 md:w-60 h-40 md:h-60 rounded-full overflow-hidden flex-shrink-0 bg-gray-200">
+          {/* Profile image - remove h-fit to allow stretching, keep width and sticky */}
+          <div className="flex justify-center md:justify-start md:sticky md:top-8 w-40 md:w-60 flex-shrink-0">
+            {/* Use w-full, remove fixed height, change rounded-full to rounded-lg */}
+            <div className="w-full overflow-hidden flex-shrink-0 bg-gray-200 rounded-lg">
               <img
-                src="/Headshot.jpg"
+                src="/Headshot_small.jpg"
                 alt="Russell Apple"
+                // Ensure h-full so the image fills the stretched container
                 className="w-full h-full object-cover"
               />
             </div>

@@ -9,7 +9,7 @@ export default function NavBar() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed top-0 left-0 w-full z-[100] bg-gray-50/90 backdrop-blur-md px-4 py-4 shadow-sm border-b border-gray-200/50">
+    <div className="fixed top-0 left-0 w-full z-[100] bg-gray-50/90 backdrop-blur-md px-4 py-4">
       <nav className="max-w-7xl mx-auto relative flex items-center justify-center md:justify-center h-12">
         {/* Mobile menu button */}
         <div className="md:hidden absolute right-3 top-2 z-[101]">

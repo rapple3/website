@@ -63,7 +63,7 @@ function MessageComponent({ message }: { message: AIMessage }) {
 export default function Chat() {
   const formRef = useRef<HTMLFormElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { messages, input, handleInputChange, handleSubmit, setInput } = useChat();
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat();
   const [clickedQuestion, setClickedQuestion] = useState<string | null>(null);
 
   // Simple scroll to bottom function
@@ -87,6 +87,12 @@ export default function Chat() {
       setClickedQuestion(null);
     }, 300);
   };
+
+  // Determine if the indicator should be shown
+  const lastMessage = messages[messages.length - 1];
+  const assistantIsResponding = lastMessage && lastMessage.role === 'assistant';
+  // Show indicator only if loading AND the last message isn't an assistant message with content
+  const showTypingIndicator = isLoading && !(assistantIsResponding && lastMessage.content.length > 0);
 
   return (
     <div className="
@@ -134,6 +140,15 @@ export default function Chat() {
               <MessageComponent key={m.id} message={m} />
             ))
           )}
+          {showTypingIndicator && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg px-4 py-2 max-w-[80%]">
+                <span className="text-gray-600 dark:text-gray-300 italic">
+                  Assistant is typing...
+                </span>
+              </div>
+            </div>
+          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -141,9 +156,10 @@ export default function Chat() {
           <input
             value={input}
             onChange={handleInputChange}
-            className="w-full rounded-lg border border-gray-300 p-4 focus:outline-none focus:border-blue-500"
-            placeholder="Type your message..."
+            className="w-full rounded-lg border border-gray-300 p-4 focus:outline-none focus:border-blue-500 disabled:bg-gray-100"
+            placeholder={isLoading ? "Assistant is thinking..." : "Type your message..."}
             style={{ color: clickedQuestion ? 'transparent' : 'inherit' }}
+            disabled={isLoading}
           />
         </form>
       </div>
