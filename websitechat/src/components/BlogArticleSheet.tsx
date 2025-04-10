@@ -81,7 +81,7 @@ export default function BlogArticleSheet({ post }: Props) {
               {post.slug === 'ai-airline-chatbot-mba' && (
                 <div className="my-6 overflow-hidden rounded-lg shadow-md">
                   <Image 
-                    src="/airline chatbot.png" // Assumes PNG in /public folder. Adjust extension if needed.
+                    src="/Airline Chatbot.png" // Corrected casing
                     alt="Screenshot of AI Airline Chatbot" 
                     width={800} // Provide appropriate width
                     height={450} // Provide appropriate height (adjust aspect ratio as needed)
