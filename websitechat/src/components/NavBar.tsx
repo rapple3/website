@@ -51,7 +51,6 @@ export default function NavBar() {
               <NavLink href="/about" active={pathname === "/about"}>About</NavLink>
               <NavLink href="/work" active={pathname === "/work"}>Work</NavLink>
               <NavLink href="/blog" active={pathname === "/blog"}>Blog</NavLink>
-              <NavLink href="/gallery" active={pathname === "/gallery"}>Gallery</NavLink>
             </div>
           </div>
         </div>
@@ -71,7 +70,6 @@ export default function NavBar() {
                 <NavLink href="/about" active={pathname === "/about"} onClick={() => setIsOpen(false)}>About</NavLink>
                 <NavLink href="/work" active={pathname === "/work"} onClick={() => setIsOpen(false)}>Work</NavLink>
                 <NavLink href="/blog" active={pathname === "/blog"} onClick={() => setIsOpen(false)}>Blog</NavLink>
-                <NavLink href="/gallery" active={pathname === "/gallery"} onClick={() => setIsOpen(false)}>Gallery</NavLink>
               </div>
             </div>
           </div>
