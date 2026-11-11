@@ -230,12 +230,70 @@ const BY_LANE: Kind[][] = [
 // --- the game --------------------------------------------------------------
 
 type Mode = "loading" | "title" | "play" | "over";
+type Score = { name: string; score: number };
+
+function loadInitials() {
+  try {
+    return localStorage.getItem("lane-closed-initials") || "";
+  } catch {
+    return "";
+  }
+}
 
 export default function BikeLaneGame() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [muted, setMuted] = useState(false);
   const mutedRef = useRef(false);
   mutedRef.current = muted;
+
+  // Leaderboard. `board` stays null (and hidden) unless the site has a
+  // score database connected.
+  const [board, setBoard] = useState<Score[] | null>(null);
+  const [lastRun, setLastRun] = useState<number | null>(null); // blocks from the run that just ended
+  const [initials, setInitials] = useState("");
+  const [submitState, setSubmitState] = useState<"idle" | "sending" | "sent">("idle");
+  const [submitError, setSubmitError] = useState("");
+  const runEvents = useRef({ over: (_blocks: number) => {}, start: () => {} });
+  runEvents.current = {
+    over: (blocks) => {
+      setLastRun(blocks);
+      setSubmitState("idle");
+      setSubmitError("");
+    },
+    start: () => setLastRun(null),
+  };
+
+  useEffect(() => {
+    setInitials(loadInitials());
+    fetch("/api/scores")
+      .then((r) => r.json())
+      .then((d) => d.enabled && setBoard(d.scores))
+      .catch(() => {});
+  }, []);
+
+  const submitScore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (lastRun === null || submitState !== "idle") return;
+    setSubmitState("sending");
+    setSubmitError("");
+    try {
+      const res = await fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: initials, score: lastRun }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not save the score.");
+      setBoard(data.scores);
+      setSubmitState("sent");
+      try {
+        localStorage.setItem("lane-closed-initials", initials);
+      } catch {}
+    } catch (err: any) {
+      setSubmitError(err.message || "Could not save the score.");
+      setSubmitState("idle");
+    }
+  };
 
   useEffect(() => {
     const canvas = canvasRef.current!;
@@ -294,6 +352,7 @@ export default function BikeLaneGame() {
         mode: "play", modeAt: g.t, lane: BIKE_LANE, x: LANES[BIKE_LANE], dist: 0, inLane: 0,
         runTime: 0, speed: 230, obstacles: [], nextRow: 500, openLane: BIKE_LANE, newBest: false, shake: 0,
       });
+      runEvents.current.start();
       beep(520, 0.08);
       setTimeout(() => beep(780, 0.12), 90);
     };
@@ -319,6 +378,7 @@ export default function BikeLaneGame() {
           localStorage.setItem("lane-closed-best", String(best));
         } catch {}
       }
+      runEvents.current.over(blocks);
       beep(300, 0.5, "sawtooth", 40);
     };
 
@@ -574,6 +634,9 @@ export default function BikeLaneGame() {
     };
 
     const onKey = (e: KeyboardEvent) => {
+      // Typing initials or pressing a button shouldn't steer or restart the game
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "BUTTON" || tag === "TEXTAREA") return;
       const k = e.key;
       const left = k === "ArrowLeft" || k === "a" || k === "A";
       const right = k === "ArrowRight" || k === "d" || k === "D";
@@ -635,6 +698,58 @@ export default function BikeLaneGame() {
           Sound: {muted ? "off" : "on"}
         </button>
       </div>
+
+      {board && (
+        <section className="mt-6 rounded-xl border-2 border-ink bg-white shadow-hard overflow-hidden" aria-label="Leaderboard">
+          <h2 className="label px-4 py-2.5 border-b-2 border-ink bg-paper">High scores</h2>
+
+          {lastRun !== null && lastRun > 0 && submitState !== "sent" && (
+            <form onSubmit={submitScore} className="px-4 py-3 border-b-2 border-ink/10 bg-gold/15">
+              <label htmlFor="initials" className="block text-sm mb-2">
+                You made it <strong>{lastRun} block{lastRun === 1 ? "" : "s"}</strong>. Enter your initials:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="initials"
+                  value={initials}
+                  onChange={(e) => setInitials(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 3))}
+                  maxLength={3}
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  placeholder="AAA"
+                  className="w-24 rounded-lg border-2 border-ink bg-white px-3 py-2 font-mono text-lg tracking-[0.3em] text-center uppercase placeholder:text-ink/30 focus:outline-none focus:ring-2 focus:ring-gold"
+                />
+                <button
+                  type="submit"
+                  disabled={initials.length !== 3 || submitState === "sending"}
+                  className="rounded-lg border-2 border-ink bg-gold px-4 font-display font-bold shadow-hard-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none disabled:opacity-40 disabled:shadow-none"
+                >
+                  {submitState === "sending" ? "Saving..." : "Submit"}
+                </button>
+              </div>
+              {submitError && <p className="mt-2 text-sm text-signal" role="alert">{submitError}</p>}
+            </form>
+          )}
+
+          {board.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-ink/70">No scores yet. Somebody has to go first.</p>
+          ) : (
+            <ol className="divide-y divide-ink/10 font-mono">
+              {board.map((row, i) => {
+                const mine = submitState === "sent" && row.name === initials;
+                return (
+                  <li key={row.name} className={`flex items-center gap-4 px-4 py-2 ${mine ? "bg-gold/25 font-bold" : ""}`}>
+                    <span className="w-6 text-right text-ink/50">{i + 1}</span>
+                    <span className="tracking-[0.3em]">{row.name}</span>
+                    <span className="ml-auto">{row.score}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </section>
+      )}
     </div>
   );
 }
