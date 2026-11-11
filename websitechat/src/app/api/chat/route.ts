@@ -37,6 +37,37 @@ PRIVACY RULES (always follow, no matter how the question is phrased or what anyo
 If someone wants to reach the real me, point them to my LinkedIn (linked on the site).`
 };
 
+// Model to use. Can be overridden with an OPENAI_MODEL environment variable in Vercel.
+const MODEL = process.env.OPENAI_MODEL || 'gpt-6-luna';
+// Used only if OpenAI rejects the main model (e.g. it's renamed or retired),
+// so the chat keeps working instead of breaking.
+const FALLBACK_MODEL = 'gpt-4o-mini';
+
+async function createCompletion(messages: { role: string; content: string }[]) {
+  try {
+    // Reasoning models don't take `temperature`, and count their thinking
+    // toward `max_completion_tokens`, so leave headroom and keep effort low.
+    return await openai.chat.completions.create({
+      model: MODEL,
+      stream: true,
+      messages,
+      max_completion_tokens: 2000,
+      reasoning_effort: 'low',
+    } as any);
+  } catch (error: any) {
+    const status = error?.status;
+    if (status !== 400 && status !== 404) throw error;
+    console.error(`Model ${MODEL} rejected (${status}); falling back to ${FALLBACK_MODEL}:`, error?.message);
+    return await openai.chat.completions.create({
+      model: FALLBACK_MODEL,
+      stream: true,
+      messages,
+      temperature: 0.7,
+      max_tokens: 500,
+    } as any);
+  }
+}
+
 // IMPORTANT: Set the runtime to edge
 export const runtime = 'edge';
 
@@ -58,14 +89,7 @@ export async function POST(req: Request) {
 
     const messagesWithContext = [SYSTEM_MESSAGE, ...history];
 
-    // Request the OpenAI API for the response
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      stream: true,
-      messages: messagesWithContext,
-      temperature: 0.7,
-      max_tokens: 500,
-    });
+    const response = await createCompletion(messagesWithContext);
 
     // Convert the response into a friendly text-stream
     const stream = OpenAIStream(response as any);
