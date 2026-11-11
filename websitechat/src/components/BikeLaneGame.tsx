@@ -26,7 +26,9 @@ type Kind = {
   epitaph: string;
   draw: (c: Ctx, t: number, seed: number) => void; // drawn centered on 0,0
 };
-type Obstacle = { lane: number; y: number; kind: Kind; seed: number };
+type Obstacle = { lane: number; y: number; kind: Kind; seed: number; rowOpen: number };
+// A car coming up from behind in the traffic lane: it honks first, then passes
+type Passer = { phase: "warn" | "go"; timer: number; y: number; seed: number };
 
 // --- drawing helpers -------------------------------------------------------
 
@@ -221,6 +223,23 @@ const CAFE_SIGN: Kind = {
   },
 };
 
+// Cars that come up from behind in the traffic lane
+const PASSER_W = 64;
+const PASSER_H = 100;
+const PASSER_WARNING = 1.4; // seconds of honking before it arrives
+const PASSER_SPEED = 400; // how fast it gains on you, in pixels per second
+const PASSER_EPITAPHS = [
+  "Hit from behind in the car lane. The driver says you \"came out of nowhere.\"",
+  "Rear-ended by a pickup truck. The driver was mid-text.",
+  "Run down from behind. The driver honked, which legally counts as a warning.",
+];
+function drawPasser(c: Ctx, seed: number) {
+  const truck = seed % 3 === 0;
+  car(c, PASSER_W, PASSER_H, truck ? "#1B1B1B" : CAR_COLORS[seed % CAR_COLORS.length], 0, false);
+  if (truck) box(c, -PASSER_W / 2 + 6, 4, PASSER_W - 12, PASSER_H / 2 - 12, 4, "#3A3A3A", 2); // truck bed
+  for (const sx of [-1, 1]) box(c, sx * 20 - 6, -PASSER_H / 2 - 1, 12, 6, 2, "#FFF6B0", 1.5); // headlights
+}
+
 const BY_LANE: Kind[][] = [
   [TRAFFIC_CAR, TRAFFIC_CAR, TRAFFIC_CAR, BUS],
   [VAN, VAN, HAZARD_CAR, HAZARD_CAR, COP, BINS, SIGN, SCOOTERS],
@@ -326,6 +345,8 @@ export default function BikeLaneGame() {
       epitaph: "",
       newBest: false,
       shake: 0,
+      passer: null as Passer | null,
+      nextPasser: 0, // seconds until the next car may come from behind
     };
 
     // Tiny synth for bleeps, so there are no sound files to load
@@ -351,6 +372,7 @@ export default function BikeLaneGame() {
       Object.assign(g, {
         mode: "play", modeAt: g.t, lane: BIKE_LANE, x: LANES[BIKE_LANE], dist: 0, inLane: 0,
         runTime: 0, speed: 230, obstacles: [], nextRow: 500, openLane: BIKE_LANE, newBest: false, shake: 0,
+        passer: null, nextPasser: 7,
       });
       runEvents.current.start();
       beep(520, 0.08);
@@ -365,10 +387,10 @@ export default function BikeLaneGame() {
       }
     };
 
-    const crash = (o: Obstacle) => {
+    const crash = (epitaph: string) => {
       g.mode = "over";
       g.modeAt = g.t;
-      g.epitaph = o.kind.epitaph;
+      g.epitaph = epitaph;
       g.shake = 0.35;
       const blocks = Math.floor(g.dist / BLOCK);
       if (blocks > best) {
@@ -386,7 +408,10 @@ export default function BikeLaneGame() {
     // one lane open, and it's never more than one lane over from the last gap.
     // The bike lane is the open one as rarely as possible, obviously.
     const spawnRow = () => {
-      const options = [g.openLane - 1, g.openLane, g.openLane + 1].filter((l) => l >= 0 && l <= 2);
+      // While a car is coming from behind, the traffic lane is never the only
+      // way through, and nothing new gets parked in its path
+      const carComing = g.passer !== null;
+      const options = [g.openLane - 1, g.openLane, g.openLane + 1].filter((l) => l >= (carComing ? 1 : 0) && l <= 2);
       let open = options[Math.floor(Math.random() * options.length)];
       if (open === BIKE_LANE && Math.random() < 0.6) {
         const others = options.filter((l) => l !== BIKE_LANE);
@@ -394,11 +419,11 @@ export default function BikeLaneGame() {
       }
       let tallest = 0;
       for (let lane = 0; lane < 3; lane++) {
-        if (lane === open) continue;
+        if (lane === open || (carComing && lane === 0)) continue;
         if (Math.random() > (lane === BIKE_LANE ? 0.92 : 0.5)) continue;
         const kinds = BY_LANE[lane];
         const kind = kinds[Math.floor(Math.random() * kinds.length)];
-        g.obstacles.push({ lane, y: -kind.h / 2 - 10, kind, seed: Math.floor(Math.random() * 1000) });
+        g.obstacles.push({ lane, y: -kind.h / 2 - 10, kind, seed: Math.floor(Math.random() * 1000), rowOpen: open });
         tallest = Math.max(tallest, kind.h);
       }
       g.openLane = open;
@@ -432,13 +457,46 @@ export default function BikeLaneGame() {
       for (const o of g.obstacles) o.y += step;
       g.obstacles = g.obstacles.filter((o) => o.y - o.kind.h / 2 < H + 20);
 
+      // Cars from behind. One only sets off when the traffic lane ahead is
+      // empty and no upcoming row forces you into it, so it's always avoidable.
+      if (!g.passer) {
+        g.nextPasser -= dt;
+        if (g.nextPasser <= 0) {
+          const ahead = g.obstacles.filter((o) => o.y - o.kind.h / 2 < PLAYER_Y + 40);
+          if (ahead.some((o) => o.lane === 0 || o.rowOpen === 0) || g.openLane === 0) {
+            g.nextPasser = 0.4; // not safe yet; check again shortly
+          } else {
+            g.passer = { phase: "warn", timer: PASSER_WARNING, y: H + PASSER_H, seed: Math.floor(Math.random() * 1000) };
+            beep(233, 0.16);
+            setTimeout(() => beep(233, 0.3), 220);
+          }
+        }
+      } else if (g.passer.phase === "warn") {
+        g.passer.timer -= dt;
+        if (g.passer.timer <= 0) g.passer.phase = "go";
+      } else {
+        g.passer.y -= PASSER_SPEED * dt;
+        if (g.passer.y < -PASSER_H) {
+          g.passer = null;
+          g.nextPasser = Math.max(2.5, 7 - g.runTime * 0.06) + Math.random() * 4;
+        }
+      }
+
       // Collisions, with slightly forgiving hitboxes
       for (const o of g.obstacles) {
         const dx = Math.abs(LANES[o.lane] - g.x);
         const dy = Math.abs(o.y - PLAYER_Y);
         if (dx < o.kind.w / 2 + 13 - 8 && dy < o.kind.h / 2 + 26 - 8) {
-          crash(o);
-          break;
+          crash(o.kind.epitaph);
+          return;
+        }
+      }
+      const pc = g.passer;
+      if (pc && pc.phase === "go") {
+        const dx = Math.abs(LANES[0] - g.x);
+        const dy = Math.abs(pc.y - PLAYER_Y);
+        if (dx < PASSER_W / 2 + 13 - 8 && dy < PASSER_H / 2 + 26 - 8) {
+          crash(PASSER_EPITAPHS[pc.seed % PASSER_EPITAPHS.length]);
         }
       }
     };
@@ -569,7 +627,20 @@ export default function BikeLaneGame() {
         o.kind.draw(c, g.t, o.seed);
         c.restore();
       }
+      if (g.passer && g.passer.phase === "go") {
+        c.save();
+        c.translate(LANES[0], g.passer.y);
+        drawPasser(c, g.passer.seed);
+        c.restore();
+      }
       if (g.mode !== "title") drawRider();
+      // Warning at the bottom of the traffic lane while a car is on its way
+      if (g.passer && g.passer.phase === "warn" && g.mode === "play") {
+        const on = Math.floor(g.t * 7) % 2 === 0;
+        box(c, LANES[0] - 46, H - 64, 92, 52, 10, on ? "#FF3B3B" : "#7A1010", 3);
+        text(c, "HONK!", LANES[0], H - 47, 19, "#FFF");
+        text(c, "CAR BEHIND", LANES[0], H - 26, 11, "#FFF");
+      }
 
       if (g.mode === "play") {
         const blocks = Math.floor(g.dist / BLOCK);
@@ -594,7 +665,8 @@ export default function BikeLaneGame() {
         panel(318, 118);
         text(c, "Stay in the green lane.", W / 2, 346, 19, INK);
         text(c, "(You won't be able to.)", W / 2, 372, 17, "#7A4A21");
-        text(c, "← →  or tap left / right to swerve", W / 2, 408, 15, INK);
+        text(c, "← →  or tap left / right to swerve", W / 2, 402, 15, INK);
+        text(c, "Watch for cars from behind.", W / 2, 422, 13, "#7A4A21");
         if (blink(g.t)) text(c, "CLICK, TAP OR PRESS SPACE TO RIDE", W / 2, 478, 18, "#FFD23F");
         if (best > 0) text(c, `YOUR BEST: ${best} BLOCKS`, W / 2, 514, 15, "#FFF");
       }
