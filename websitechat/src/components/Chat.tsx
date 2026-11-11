@@ -82,15 +82,12 @@ export default function Chat() {
             An AI version of me. Mostly accurate, occasionally sarcastic.
           </p>
         </div>
-        <span className="label ml-auto hidden sm:flex items-center gap-1.5 shrink-0">
-          <span className="w-2 h-2 rounded-full bg-lane" /> In service
-        </span>
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="grid grid-cols-1 gap-2">
-            <p className="label text-ink/60 mb-1">Popular routes</p>
+            <p className="label text-ink/60 mb-1">Try asking</p>
             {suggestedQuestions.map((question, index) => (
               <button
                 key={index}
