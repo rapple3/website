@@ -12,10 +12,10 @@ type Message = {
 };
 
 const suggestedQuestions = [
-  "What's the story behind his transition from engineering to business?",
-  "What makes his combination of skills unique?",
-  "What kind of projects has he worked on?",
-  "What is he currently working on?",
+  "What are you building right now?",
+  "What does a derivatives analyst actually do?",
+  "Why are you so into bikes?",
+  "How's Georgia Tech football going?",
 ];
 
 function MessageComponent({ message }: { message: AIMessage }) {
@@ -98,9 +98,9 @@ export default function Chat() {
     <div className="-mx-4 sm:mx-0 -mt-8 sm:mt-0 -mb-10 sm:mb-0 flex justify-center">
       <div className="flex flex-col w-full h-[calc(100dvh-4rem)] sm:max-w-2xl sm:h-[min(600px,calc(100dvh-10rem))] bg-white sm:rounded-xl sm:shadow-lg sm:ring-1 sm:ring-gray-200">
         <div className="p-4 border-b border-gray-200">
-          <h1 className="text-xl font-semibold">Ask About Russell</h1>
+          <h1 className="text-xl font-semibold">Ask Me Anything</h1>
           <p className="text-sm text-gray-500">
-            AI-powered assistant with info about my background & experience
+            An AI version of me. Mostly accurate, occasionally sarcastic.
           </p>
         </div>
         
@@ -137,7 +137,7 @@ export default function Chat() {
             <div className="flex justify-start mb-4">
               <div className="bg-gray-100 rounded-lg px-4 py-2 max-w-[80%]">
                 <span className="text-gray-600 italic">
-                  Assistant is typing...
+                  Thinking of something clever...
                 </span>
               </div>
             </div>
@@ -150,7 +150,7 @@ export default function Chat() {
             value={input}
             onChange={handleInputChange}
             className="w-full rounded-lg border border-gray-300 p-4 focus:outline-none focus:border-blue-500 disabled:bg-gray-100"
-            placeholder={isLoading ? "Assistant is thinking..." : "Type your message..."}
+            placeholder={isLoading ? "Hang on..." : "Ask me something..."}
             style={{ color: clickedQuestion ? 'transparent' : 'inherit' }}
             disabled={isLoading}
           />

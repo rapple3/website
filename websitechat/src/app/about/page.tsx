@@ -3,7 +3,7 @@ export default function About() {
     {
       name: "Cisco",
       logo: "/Cisco.png",
-      period: "2024 - 2024"
+      period: "Summer 2024"
     },
     {
       name: "Herman Miller",
@@ -40,22 +40,20 @@ export default function About() {
             <div className="prose max-w-full text-left">
               <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-6 text-center md:text-left">Russell Apple</h1>
               <p className="text-sm md:text-base">
-                Product development engineer with 10 years of experience driving innovation in manufacturing and 
-                consumer products at companies like Cisco, Herman Miller, and Newell Brands. Proven track record of 
-                leading complex technical projects, from automated CAD modeling to production optimization, while 
-                collaborating across engineering and business teams.
+                I&apos;m a derivatives analyst at a regional bank. I got here the long way around: about ten
+                years as a mechanical and product engineer at places like Herman Miller and Newell Brands, then
+                an MBA at Georgia Tech, then a jump into finance.
               </p>
               <p className="text-sm md:text-base">
-                Currently pursuing my MBA at Georgia Tech's 
-                Scheller College of Business (Class of 2025), with a focus on Strategy & Innovation and 
-                Management of Information Resources. Passionate about leveraging my mechanical engineering 
-                background and business acumen to drive product strategy and technological innovation. 
-                Open to discussing product management, strategy, and technical leadership roles.
+                Outside of work I&apos;m a dad, a serial home-improvement tinkerer (currently building cabinets
+                for the pantry and mudroom), and an amateur photographer. I bike most places and will happily talk
+                your ear off about bike lanes, transit, and making Atlanta more walkable. Georgia Tech football
+                fan, which this year mostly means being disappointed.
               </p>
             </div>
             
             <div className="space-y-4 mt-6 md:mt-8">
-              <h2 className="text-xl md:text-2xl font-semibold">Previous Companies</h2>
+              <h2 className="text-xl md:text-2xl font-semibold">Before This</h2>
               <div className="grid grid-cols-1 gap-3 md:gap-4">
                 {companies.map((company, index) => (
                   <div 

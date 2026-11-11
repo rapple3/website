@@ -11,7 +11,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Russell Apple",
-  description: "Chat with Russell Apple about his experience and background",
+  description: "Russell Apple's corner of the internet. Ask the AI version of me anything.",
 };
 
 export default function RootLayout({
