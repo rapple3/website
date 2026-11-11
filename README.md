@@ -1,17 +1,17 @@
-Personal Website
-My personal website hosted on GitHub Pages. Visit it at rapple3.github.io.
-Description
-A simple personal website to share information about myself and my work.
-Technologies
+# Personal Website
 
-HTML5
-CSS3
+Russell Apple's personal site. It's a Next.js app with an AI chat on the homepage, deployed on Vercel.
 
-Setup
+The app lives in [`websitechat/`](websitechat/). Pushing to `main` redeploys the live site.
 
-Clone the repository
-Modify index.html with your content
-Push changes to GitHub
+## Local development
 
-License
-This project is licensed under the MIT License - see the LICENSE file for details.
+```bash
+cd websitechat
+npm install
+OPENAI_API_KEY=... npm run dev
+```
+
+## License
+
+MIT, see [LICENSE](LICENSE).

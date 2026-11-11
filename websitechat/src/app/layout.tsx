@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Chat with Russell",
+  title: "Russell Apple",
   description: "Chat with Russell Apple about his experience and background",
 };
 
@@ -20,14 +20,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <nav className="fixed top-0 w-full z-50 backdrop-blur-md bg-white/70">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <NavBar />
-          </div>
-        </nav>
-        <main className="pt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <html lang="en" className={inter.className}>
+      <body className="min-h-dvh bg-gray-50 text-gray-900">
+        <NavBar />
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10">
           {children}
         </main>
         <Analytics />

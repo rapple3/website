@@ -25,11 +25,11 @@ function MessageComponent({ message }: { message: AIMessage }) {
         className={`${
           message.role === 'user' 
             ? 'bg-blue-500' 
-            : 'bg-gray-200 dark:bg-gray-700'
+            : 'bg-gray-100'
         } rounded-lg px-4 py-2 max-w-[80%]`}
       >
         <ReactMarkdown 
-          className={`prose dark:prose-invert max-w-none text-base ${
+          className={`prose max-w-none text-base ${
             message.role === 'user' ? 'text-white prose-headings:text-white prose-p:text-white prose-strong:text-white' : ''
           }`}
           components={{
@@ -42,7 +42,7 @@ function MessageComponent({ message }: { message: AIMessage }) {
                 <code 
                   className={`${
                     match ? 'block' : 'inline'
-                  } bg-gray-100 dark:bg-gray-800 rounded ${
+                  } bg-gray-200 rounded ${
                     match ? 'p-2 my-2' : 'px-1'
                   }`} 
                   {...props}
@@ -95,15 +95,8 @@ export default function Chat() {
   const showTypingIndicator = isLoading && !(assistantIsResponding && lastMessage.content.length > 0);
 
   return (
-    <div className="
-      min-h-[calc(100dvh-60rem)]
-      h-[calc(100dvh-6rem)]
-      bg-gray-50
-      sm:grid 
-      sm:place-items-center
-      sm:pt-0
-    ">
-      <div className="flex flex-col w-full h-[calc(100dvh-6rem)] sm:max-w-2xl sm:h-[600px] bg-white sm:rounded-xl sm:shadow-lg sm:m-4">
+    <div className="-mx-4 sm:mx-0 -mt-8 sm:mt-0 -mb-10 sm:mb-0 flex justify-center">
+      <div className="flex flex-col w-full h-[calc(100dvh-4rem)] sm:max-w-2xl sm:h-[min(600px,calc(100dvh-10rem))] bg-white sm:rounded-xl sm:shadow-lg sm:ring-1 sm:ring-gray-200">
         <div className="p-4 border-b border-gray-200">
           <h1 className="text-xl font-semibold">Ask About Russell</h1>
           <p className="text-sm text-gray-500">
@@ -142,8 +135,8 @@ export default function Chat() {
           )}
           {showTypingIndicator && (
             <div className="flex justify-start mb-4">
-              <div className="bg-gray-200 dark:bg-gray-700 rounded-lg px-4 py-2 max-w-[80%]">
-                <span className="text-gray-600 dark:text-gray-300 italic">
+              <div className="bg-gray-100 rounded-lg px-4 py-2 max-w-[80%]">
+                <span className="text-gray-600 italic">
                   Assistant is typing...
                 </span>
               </div>

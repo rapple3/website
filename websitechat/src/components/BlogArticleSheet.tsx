@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import Link from 'next/link';
 import { Sheet } from '@silk-hq/components';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
@@ -28,14 +27,7 @@ export default function BlogArticleSheet({ post }: Props) {
           <h2 className="text-2xl font-semibold mb-2 not-prose">{post.title}</h2>
           <p className="text-gray-500 mb-4 not-prose">{post.date}</p>
           <p>{post.snippet}</p>
-          {/* Add a standard link to the full page */}
-          <Link 
-            href={`/blog/${post.slug}`} 
-            className="text-blue-600 hover:text-blue-800 mt-4 inline-block no-underline"
-            onClick={(e) => e.stopPropagation()} // Prevent sheet opening when clicking link
-          >
-             Read more →
-          </Link>
+          <span className="text-blue-600 mt-4 inline-block not-prose">Read more →</span>
         </article>
       </Sheet.Trigger>
       <Sheet.Portal>
@@ -85,8 +77,7 @@ export default function BlogArticleSheet({ post }: Props) {
                     alt="Screenshot of AI Airline Chatbot" 
                     width={800} // Provide appropriate width
                     height={450} // Provide appropriate height (adjust aspect ratio as needed)
-                    layout="responsive"
-                    objectFit="cover"
+                    className="w-full h-auto object-cover"
                   />
                 </div>
               )}
@@ -103,11 +94,6 @@ export default function BlogArticleSheet({ post }: Props) {
                 }}>{post.fullContent}</ReactMarkdown>
               ) : (
                 <p>{post.snippet}</p>
-              )}
-
-              {/* Placeholder Link (Will also be handled by the custom renderer) */}
-              {post.fullContent && (
-                <></> // Render nothing here, link is in the Markdown above
               )}
             </div>
           </Sheet.Content>

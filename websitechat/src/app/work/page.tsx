@@ -26,7 +26,7 @@ const workItems: WorkItem[] = [
 
 export default function Work() {
   return (
-    <div className="min-h-screen pt-24 pb-8 px-4 md:px-8 flex flex-col items-center bg-gray-50">
+    <div className="pt-6 flex flex-col items-center">
       <h1 className="text-3xl font-bold mb-8">My Work</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full">
         {workItems.map((item, index) => (

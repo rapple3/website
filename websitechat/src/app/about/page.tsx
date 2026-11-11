@@ -19,7 +19,7 @@ export default function About() {
   ];
 
   return (
-    <div className="min-h-[calc(100dvh-6rem)] p-4 md:p-8 bg-gray-50 overflow-y-auto">
+    <div className="pt-6">
       <div className="max-w-4xl w-full mx-auto">
         <div className="flex flex-col md:flex-row gap-6 md:gap-8">
           {/* Profile image - remove h-fit to allow stretching, keep width and sticky */}
