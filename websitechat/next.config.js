@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Empty config is fine for Vercel deployment
+  // Old page addresses keep working
+  async redirects() {
+    return [
+      { source: '/work', destination: '/projects', permanent: false },
+      { source: '/blog', destination: '/notes', permanent: false },
+    ];
+  },
 }
 
 module.exports = nextConfig

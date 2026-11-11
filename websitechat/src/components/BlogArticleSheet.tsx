@@ -23,11 +23,11 @@ export default function BlogArticleSheet({ post }: Props) {
     <Sheet.Root license="commercial"> {/* Add license prop if required by the library */}
       <Sheet.Trigger asChild>
         {/* This is the preview card that triggers the sheet */}
-        <article className="prose max-w-none bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-          <h2 className="text-2xl font-semibold mb-2 not-prose">{post.title}</h2>
-          <p className="text-gray-500 mb-4 not-prose">{post.date}</p>
-          <p>{post.snippet}</p>
-          <span className="text-blue-600 mt-4 inline-block not-prose">Read more →</span>
+        <article className="bg-white p-6 rounded-xl border-2 border-ink shadow-hard cursor-pointer transition-transform hover:-translate-y-1">
+          <p className="label text-ink/60 mb-2">{post.date}</p>
+          <h2 className="font-display font-bold text-2xl leading-tight mb-3">{post.title}</h2>
+          <p className="text-ink/80">{post.snippet}</p>
+          <span className="mt-4 inline-block font-semibold underline decoration-gold decoration-2 underline-offset-4">Read more →</span>
         </article>
       </Sheet.Trigger>
       <Sheet.Portal>
@@ -43,7 +43,7 @@ export default function BlogArticleSheet({ post }: Props) {
           />
           <Sheet.Content className="PageFromBottom-content">
             {/* Added Color Bar */}
-            <div className="h-2 w-full bg-gradient-to-r from-teal-400 to-blue-500"></div>
+            <div className="h-2 w-full bg-gold border-b-2 border-ink"></div>
             
             {/* Existing Top Bar */}
             <div className="PageFromBottom-topBar">
@@ -54,7 +54,7 @@ export default function BlogArticleSheet({ post }: Props) {
                 Close
               </Sheet.Trigger>
             </div>
-            <div className="prose max-w-none p-4 overflow-y-auto">
+            <div className="overflow-y-auto"><div className="prose prose-headings:font-display max-w-2xl mx-auto p-4 sm:p-6">
               {/* Title and Date */}
               <ReactMarkdown components={{
                 // Custom renderer for links
@@ -95,7 +95,7 @@ export default function BlogArticleSheet({ post }: Props) {
               ) : (
                 <p>{post.snippet}</p>
               )}
-            </div>
+            </div></div>
           </Sheet.Content>
         </Sheet.View>
       </Sheet.Portal>

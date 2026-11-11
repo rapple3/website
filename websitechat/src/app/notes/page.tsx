@@ -14,12 +14,15 @@ const blogPosts: BlogPost[] = [
   }
 ];
 
-export default function Blog() {
+export default function Notes() {
   return (
-    <div className="pt-6 flex flex-col items-center">
-      <h1 className="text-3xl font-bold mb-8">Blog</h1>
-
-      <div className="space-y-8 max-w-2xl w-full">
+    <div>
+      <p className="label mb-2 text-ink/60">Field notes</p>
+      <h1 className="font-display font-extrabold text-4xl sm:text-5xl tracking-tight">Notes</h1>
+      <p className="mt-3 mb-8 max-w-2xl text-lg text-ink/80">
+        Occasional write-ups. Posting schedule: irregular, like the bus.
+      </p>
+      <div className="space-y-8 max-w-2xl">
         {blogPosts.map((post) => (
           <BlogArticleSheet key={post.slug} post={post} />
         ))}
