@@ -615,7 +615,6 @@ export default function BikeLaneGame() {
         c.strokeRect(60, H / 2 - 12, W - 120, 24);
         c.fillStyle = "#FFD23F";
         c.fillRect(65, H / 2 - 7, (W - 130) * Math.min(1, g.t / 1.2), 14);
-        text(c, "best viewed in Internet Explorer 6", W / 2, H / 2 + 40, 13, "#888");
         c.restore();
         return;
       }
