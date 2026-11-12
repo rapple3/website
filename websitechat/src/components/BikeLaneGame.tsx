@@ -39,7 +39,19 @@ type Obstacle = {
 };
 // A car coming up from behind in the traffic lane: it honks first, then passes.
 // A "hook" also turns right across the bike lane just after it gets ahead of you.
-type Passer = { phase: "warn" | "go" | "turn"; timer: number; x: number; y: number; seed: number; hook: boolean; turn: number /* road distance since the turn began */ };
+type Passer = {
+  phase: "warn" | "go" | "turn";
+  timer: number;
+  x: number;
+  y: number;
+  seed: number;
+  hook: boolean;
+  turn: number; // road distance since the turn began
+  corner: number; // for hooks: where along the road the cross street is
+  drift: number; // for hooks: sideways movement per pixel of road while turning
+};
+// A cross street. Right hooks only happen here.
+type Intersection = { at: number; decided: boolean; hook: boolean; fired: boolean };
 // A stretch of road with different rules, in distance travelled
 type Zone = { type: "protected" | "nolane"; a: number; b: number };
 
@@ -254,11 +266,13 @@ function drawPasser(c: Ctx, seed: number) {
 }
 
 const HOOK_EPITAPH = "Right-hooked. The driver did signal, about four feet before turning.";
-// The turn is measured in road distance, not time, so it crosses the same way at
-// any speed: it sweeps the bike lane as it reaches you and clears the car lane
-// and the sidewalk.
-const HOOK_AHEAD = 170; // how far ahead of you the car starts turning
-const HOOK_DRIFT = 0.76; // sideways movement per pixel of road
+// A hooking car turns right at a cross street. It's timed to reach the corner
+// when the corner is about this far ahead of you, and its sideways speed is set
+// so that it's squarely across the bike lane as it reaches you while leaving
+// the car lane and the sidewalk clear, at any speed.
+const HOOK_AHEAD = 170;
+const HOOK_REACH = 130; // how far sideways it has moved by the time it reaches you
+const CROSS_HALF = 62; // half the width of a cross street
 
 const POTHOLE: Kind = {
   w: 44, h: 28, epitaph: "", soft: true,
@@ -413,6 +427,8 @@ export default function BikeLaneGame() {
       zone: null as Zone | null,
       nextZone: 0, // seconds until the next special stretch
       lastZone: "nolane" as Zone["type"],
+      inters: [] as Intersection[],
+      hookSoon: false, // a car is about to hook at the next corner: keep the car lane clear
       force: "", // testing only: set window.__laneClosedForce to make one feature show up right away
     };
 
@@ -443,13 +459,19 @@ export default function BikeLaneGame() {
         mode: "play", modeAt: g.t, lane: BIKE_LANE, x: LANES[BIKE_LANE], dist: 0, inLane: 0,
         runTime: 0, speed: 230, obstacles: [], nextRow: 500, openLane: BIKE_LANE, newBest: false, shake: 0,
         passer: null, nextPasser: 7, wobble: 0, bonus: 0, zone: null, nextZone: 14, lastZone: "nolane",
+        inters: [{ at: 1500, decided: false, hook: false, fired: false }], hookSoon: false,
         force: String((window as any).__laneClosedForce || ""),
       });
       if (g.force === "protected" || g.force === "nolane") {
         g.nextZone = 0.5;
         g.lastZone = g.force === "protected" ? "nolane" : "protected";
       }
-      if (g.force === "hook") g.nextPasser = 1;
+      if (g.force === "hook") {
+        // testing: an empty road with a hooking car at an early first corner
+        g.inters[0].at = 900;
+        g.nextRow = 1e9;
+        g.nextPasser = 1e9;
+      }
       runEvents.current.start();
       beep(520, 0.08);
       setTimeout(() => beep(780, 0.12), 90);
@@ -487,7 +509,7 @@ export default function BikeLaneGame() {
     const spawnRow = () => {
       // While a car is coming from behind, the traffic lane is never the only
       // way through, and nothing new gets parked in its path
-      const carComing = g.passer !== null;
+      const carComing = g.passer !== null || g.hookSoon;
       const spawnAt = g.dist + PLAYER_Y + 10; // how far along the road this row sits
       const zone = g.zone && spawnAt + 170 >= g.zone.a && spawnAt - 40 <= g.zone.b ? g.zone.type : null;
       const seed = () => Math.floor(Math.random() * 1000);
@@ -575,10 +597,44 @@ export default function BikeLaneGame() {
       g.nextRow -= step;
       // No new rows while a car is about to turn across the road
       if (g.nextRow <= 0 && !(g.passer && g.passer.hook)) {
-        // Clear road after this row's longest obstacle, so there's always
-        // room to change lanes before the next row arrives
-        const tallest = spawnRow();
-        g.nextRow = tallest + Math.max(150, 250 - g.runTime * 2.5);
+        const spawnAt = g.dist + PLAYER_Y + 10;
+        if (g.inters.some((i) => spawnAt + 160 >= i.at - CROSS_HALF && spawnAt <= i.at + CROSS_HALF)) {
+          g.nextRow = 12; // nothing gets parked in the middle of an intersection; try again just past it
+        } else {
+          // Clear road after this row's longest obstacle, so there's always
+          // room to change lanes before the next row arrives
+          const tallest = spawnRow();
+          g.nextRow = tallest + Math.max(150, 250 - g.runTime * 2.5);
+        }
+      }
+
+      // Cross streets, and the cars that turn at them
+      const lastInter = g.inters[g.inters.length - 1];
+      if (lastInter.at < g.dist + 3000) {
+        g.inters.push({ at: lastInter.at + 1500 + Math.random() * 800, decided: false, hook: false, fired: false });
+      }
+      g.inters = g.inters.filter((i) => i.at > g.dist - 400);
+      // The warning has to start this far out for the car to meet the corner ahead of you
+      const fireAhead = HOOK_AHEAD + g.speed * (PASSER_WARNING + (H + PASSER_H - (PLAYER_Y - HOOK_AHEAD)) / PASSER_SPEED);
+      g.hookSoon = false;
+      for (const i of g.inters) {
+        const ahead = i.at - g.dist;
+        if (!i.decided && ahead < g.speed * 7) {
+          i.decided = true;
+          i.hook = g.force === "hook" || (g.runTime > 5 && Math.random() < 0.45);
+        }
+        if (!i.hook || i.fired) continue;
+        if (ahead <= fireAhead + g.speed * 2) g.hookSoon = true;
+        if (ahead <= fireAhead) {
+          i.fired = true;
+          const upcoming = g.obstacles.filter((o) => !o.kind.soft && o.y - o.kind.h / 2 < PLAYER_Y + 40);
+          const inProtected = g.zone && g.zone.type === "protected" && i.at >= g.zone.a - 150 && i.at <= g.zone.b + 150;
+          if (!g.passer && !inProtected && g.openLane !== 0 && !upcoming.some((o) => o.lane === 0 || o.rowOpen === 0)) {
+            g.passer = { phase: "warn", timer: PASSER_WARNING, x: LANES[0], y: H + PASSER_H, seed: seed1000(), hook: true, turn: 0, corner: i.at, drift: 0 };
+            beep(233, 0.16);
+            setTimeout(() => beep(233, 0.3), 220);
+          }
+        }
       }
 
       for (const o of g.obstacles) {
@@ -597,11 +653,11 @@ export default function BikeLaneGame() {
         g.nextPasser -= dt;
         if (g.nextPasser <= 0) {
           const ahead = g.obstacles.filter((o) => !o.kind.soft && o.y - o.kind.h / 2 < PLAYER_Y + 40);
-          if (ahead.some((o) => o.lane === 0 || o.rowOpen === 0) || g.openLane === 0) {
+          // Also wait if a car is due to turn at an upcoming corner
+          if (ahead.some((o) => o.lane === 0 || o.rowOpen === 0) || g.openLane === 0 || g.inters.some((i) => i.hook && !i.fired)) {
             g.nextPasser = 0.4; // not safe yet; check again shortly
           } else {
-            const hook = !g.zone && (g.force === "hook" || (g.runTime > 20 && Math.random() < 0.35));
-            g.passer = { phase: "warn", timer: PASSER_WARNING, x: LANES[0], y: H + PASSER_H, seed: seed1000(), hook, turn: 0 };
+            g.passer = { phase: "warn", timer: PASSER_WARNING, x: LANES[0], y: H + PASSER_H, seed: seed1000(), hook: false, turn: 0, corner: 0, drift: 0 };
             beep(233, 0.16);
             setTimeout(() => beep(233, 0.3), 220);
           }
@@ -611,15 +667,16 @@ export default function BikeLaneGame() {
         if (p.timer <= 0) p.phase = "go";
       } else if (p.phase === "go") {
         p.y -= PASSER_SPEED * dt;
-        // A hook starts its turn just far enough ahead to cross your path
-        if (p.hook && p.y <= PLAYER_Y - HOOK_AHEAD) {
+        // A hook turns into the cross street when it reaches the corner
+        if (p.hook && p.y <= PLAYER_Y - (p.corner - g.dist)) {
           p.phase = "turn";
+          p.drift = HOOK_REACH / Math.max(120, PLAYER_Y - p.y);
           beep(700, 0.06);
         }
         if (p.y < -PASSER_H) endPasser();
       } else {
         p.turn += step; // road distance since it began turning
-        p.x += HOOK_DRIFT * step;
+        p.x += p.drift * step;
         p.y += step; // it's leaving the road, so it drifts back toward you
         if (p.x > W + PASSER_H || p.y > H + PASSER_H) endPasser();
       }
@@ -765,6 +822,23 @@ export default function BikeLaneGame() {
       }
     };
 
+    const drawIntersections = () => {
+      for (const i of g.inters) {
+        const yc = PLAYER_Y - (i.at - g.dist);
+        if (yc < -CROSS_HALF - 10 || yc > H + CROSS_HALF + 10) continue;
+        const top = yc - CROSS_HALF;
+        c.fillStyle = "#4A4E57"; // the cross street
+        c.fillRect(0, top, W, CROSS_HALF * 2);
+        c.fillStyle = "#F4D03F"; // its center line
+        for (let x = 6; x < W; x += 34) c.fillRect(x, yc - 2, 18, 4);
+        c.fillStyle = "#3E9B5F"; // the bike lane continues across as green dashes
+        for (let y = top + 6; y < top + CROSS_HALF * 2 - 10; y += 28) c.fillRect(LANE_W + 6, y, LANE_W - 12, 16);
+        c.fillStyle = "#FFFFFF"; // crosswalk in line with the sidewalk
+        for (let x = LANE_W * 2 + 12; x < W - 8; x += 22) c.fillRect(x, top + 6, 11, CROSS_HALF * 2 - 12);
+        c.fillRect(10, top + CROSS_HALF * 2 - 7, LANE_W - 16, 6); // stop line for the car lane
+      }
+    };
+
     const drawRider = () => {
       const lean = (LANES[g.lane] - g.x) * 0.012 + (g.wobble > 0 ? Math.sin(g.t * 45) * 0.3 : 0);
       c.save();
@@ -822,6 +896,7 @@ export default function BikeLaneGame() {
 
       drawStreet();
       drawZone();
+      drawIntersections();
       for (const o of g.obstacles) {
         c.save();
         c.translate(o.x ?? LANES[o.lane], o.y);
