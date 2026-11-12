@@ -25,10 +25,23 @@ type Kind = {
   h: number;
   epitaph: string;
   draw: (c: Ctx, t: number, seed: number) => void; // drawn centered on 0,0
+  soft?: boolean; // doesn't end the run (potholes)
 };
-type Obstacle = { lane: number; y: number; kind: Kind; seed: number; rowOpen: number };
-// A car coming up from behind in the traffic lane: it honks first, then passes
-type Passer = { phase: "warn" | "go"; timer: number; y: number; seed: number };
+type Obstacle = {
+  lane: number;
+  y: number;
+  kind: Kind;
+  seed: number;
+  rowOpen: number; // the lane this obstacle's row left open
+  x?: number; // set when it isn't centered in its lane
+  door?: number; // for parked cars that door you: 0 = shut, 1 = wide open
+  hit?: boolean; // potholes only catch you once
+};
+// A car coming up from behind in the traffic lane: it honks first, then passes.
+// A "hook" also turns right across the bike lane just after it gets ahead of you.
+type Passer = { phase: "warn" | "go" | "turn"; timer: number; x: number; y: number; seed: number; hook: boolean; turn: number /* road distance since the turn began */ };
+// A stretch of road with different rules, in distance travelled
+type Zone = { type: "protected" | "nolane"; a: number; b: number };
 
 // --- drawing helpers -------------------------------------------------------
 
@@ -240,6 +253,54 @@ function drawPasser(c: Ctx, seed: number) {
   for (const sx of [-1, 1]) box(c, sx * 20 - 6, -PASSER_H / 2 - 1, 12, 6, 2, "#FFF6B0", 1.5); // headlights
 }
 
+const HOOK_EPITAPH = "Right-hooked. The driver did signal, about four feet before turning.";
+// The turn is measured in road distance, not time, so it crosses the same way at
+// any speed: it sweeps the bike lane as it reaches you and clears the car lane
+// and the sidewalk.
+const HOOK_AHEAD = 170; // how far ahead of you the car starts turning
+const HOOK_DRIFT = 0.76; // sideways movement per pixel of road
+
+const POTHOLE: Kind = {
+  w: 44, h: 28, epitaph: "", soft: true,
+  draw: (c) => {
+    c.beginPath();
+    c.ellipse(0, 0, 22, 13, 0.15, 0, Math.PI * 2);
+    c.fillStyle = "#23252B";
+    c.fill();
+    c.lineWidth = 2.5;
+    c.strokeStyle = "#111";
+    c.stroke();
+    c.beginPath();
+    c.ellipse(-3, -2, 12, 6, 0.15, 0, Math.PI * 2);
+    c.fillStyle = "#0E0F12";
+    c.fill();
+    c.beginPath();
+    c.moveTo(20, -5);
+    c.lineTo(31, -11);
+    c.moveTo(-21, 5);
+    c.lineTo(-32, 10);
+    c.lineWidth = 2;
+    c.stroke();
+  },
+};
+
+// A car parked half on the curb. Its door swings open across the bike lane.
+const DOOR_CAR_X = 268;
+const DOOR_LEN = 60;
+const DOOR_OPENS_AT = 300; // pixels ahead of you
+const DOOR_CAR: Kind = {
+  w: 62, h: 92,
+  epitaph: "Doored. The driver checked their phone, but not their mirror.",
+  draw: (c, t, seed) => {
+    car(c, 62, 92, CAR_COLORS[seed % 4], t, false);
+    for (const sx of [-1, 1]) box(c, sx * 19 - 6, 40, 12, 5, 2, "#FF3B3B", 1.5); // brake lights: someone's in there
+    dot(c, -11, -2, 7, "#E8C39E", 2); // the driver
+  },
+};
+
+// With no bike lane, the middle lane is just more traffic
+const NO_LANE_KINDS: Kind[] = [TRAFFIC_CAR, TRAFFIC_CAR, TRAFFIC_CAR, BUS, HAZARD_CAR];
+
 const BY_LANE: Kind[][] = [
   [TRAFFIC_CAR, TRAFFIC_CAR, TRAFFIC_CAR, BUS],
   [VAN, VAN, HAZARD_CAR, HAZARD_CAR, COP, BINS, SIGN, SCOOTERS],
@@ -347,7 +408,16 @@ export default function BikeLaneGame() {
       shake: 0,
       passer: null as Passer | null,
       nextPasser: 0, // seconds until the next car may come from behind
+      wobble: 0, // seconds of locked steering after a pothole
+      bonus: 0, // extra distance earned in protected lanes
+      zone: null as Zone | null,
+      nextZone: 0, // seconds until the next special stretch
+      lastZone: "nolane" as Zone["type"],
+      force: "", // testing only: set window.__laneClosedForce to make one feature show up right away
     };
+
+    const blocksNow = () => Math.floor((g.dist + g.bonus) / BLOCK);
+    const zoneHere = () => (g.zone && g.dist >= g.zone.a && g.dist <= g.zone.b ? g.zone.type : null);
 
     // Tiny synth for bleeps, so there are no sound files to load
     let audio: AudioContext | null = null;
@@ -372,14 +442,21 @@ export default function BikeLaneGame() {
       Object.assign(g, {
         mode: "play", modeAt: g.t, lane: BIKE_LANE, x: LANES[BIKE_LANE], dist: 0, inLane: 0,
         runTime: 0, speed: 230, obstacles: [], nextRow: 500, openLane: BIKE_LANE, newBest: false, shake: 0,
-        passer: null, nextPasser: 7,
+        passer: null, nextPasser: 7, wobble: 0, bonus: 0, zone: null, nextZone: 14, lastZone: "nolane",
+        force: String((window as any).__laneClosedForce || ""),
       });
+      if (g.force === "protected" || g.force === "nolane") {
+        g.nextZone = 0.5;
+        g.lastZone = g.force === "protected" ? "nolane" : "protected";
+      }
+      if (g.force === "hook") g.nextPasser = 1;
       runEvents.current.start();
       beep(520, 0.08);
       setTimeout(() => beep(780, 0.12), 90);
     };
 
     const steer = (dir: -1 | 1) => {
+      if (g.wobble > 0) return; // still recovering from a pothole
       const lane = Math.max(0, Math.min(2, g.lane + dir));
       if (lane !== g.lane) {
         g.lane = lane;
@@ -392,7 +469,7 @@ export default function BikeLaneGame() {
       g.modeAt = g.t;
       g.epitaph = epitaph;
       g.shake = 0.35;
-      const blocks = Math.floor(g.dist / BLOCK);
+      const blocks = blocksNow();
       if (blocks > best) {
         best = blocks;
         g.newBest = true;
@@ -411,23 +488,54 @@ export default function BikeLaneGame() {
       // While a car is coming from behind, the traffic lane is never the only
       // way through, and nothing new gets parked in its path
       const carComing = g.passer !== null;
-      const options = [g.openLane - 1, g.openLane, g.openLane + 1].filter((l) => l >= (carComing ? 1 : 0) && l <= 2);
-      let open = options[Math.floor(Math.random() * options.length)];
-      if (open === BIKE_LANE && Math.random() < 0.6) {
-        const others = options.filter((l) => l !== BIKE_LANE);
-        if (others.length) open = others[Math.floor(Math.random() * others.length)];
+      const spawnAt = g.dist + PLAYER_Y + 10; // how far along the road this row sits
+      const zone = g.zone && spawnAt + 170 >= g.zone.a && spawnAt - 40 <= g.zone.b ? g.zone.type : null;
+      const seed = () => Math.floor(Math.random() * 1000);
+      const add = (lane: number, kind: Kind, rowOpen: number, extra: Partial<Obstacle> = {}) =>
+        g.obstacles.push({ lane, y: -kind.h / 2 - 10, kind, seed: seed(), rowOpen, ...extra });
+
+      // Dooring: a car parked half on the curb blocks the sidewalk, and its door
+      // will swing across the bike lane, so the only way past is out in traffic
+      if (!carComing && zone !== "protected" && g.openLane <= 1 && (g.force === "door" || (g.runTime > 8 && Math.random() < 0.13))) {
+        add(2, DOOR_CAR, 0, { x: DOOR_CAR_X, door: 0 });
+        g.openLane = 0;
+        return DOOR_CAR.h;
+      }
+
+      let open: number;
+      if (zone === "protected") {
+        open = BIKE_LANE; // nothing gets into a protected lane
+      } else {
+        const options = [g.openLane - 1, g.openLane, g.openLane + 1].filter((l) => l >= (carComing ? 1 : 0) && l <= 2);
+        open = options[Math.floor(Math.random() * options.length)];
+        if (open === BIKE_LANE && Math.random() < 0.6) {
+          const others = options.filter((l) => l !== BIKE_LANE);
+          if (others.length) open = others[Math.floor(Math.random() * others.length)];
+        }
       }
       let tallest = 0;
       for (let lane = 0; lane < 3; lane++) {
-        if (lane === open || (carComing && lane === 0)) continue;
-        if (Math.random() > (lane === BIKE_LANE ? 0.92 : 0.5)) continue;
-        const kinds = BY_LANE[lane];
-        const kind = kinds[Math.floor(Math.random() * kinds.length)];
-        g.obstacles.push({ lane, y: -kind.h / 2 - 10, kind, seed: Math.floor(Math.random() * 1000), rowOpen: open });
-        tallest = Math.max(tallest, kind.h);
+        if (lane === open) continue;
+        const blocked = !(carComing && lane === 0) && Math.random() <= (lane === BIKE_LANE ? 0.92 : 0.5);
+        if (blocked) {
+          const kinds = lane === BIKE_LANE && zone === "nolane" ? NO_LANE_KINDS : BY_LANE[lane];
+          const kind = kinds[Math.floor(Math.random() * kinds.length)];
+          add(lane, kind, open);
+          tallest = Math.max(tallest, kind.h);
+        } else if (lane !== 2 && (g.force === "pothole" || (g.runTime > 5 && Math.random() < 0.2))) {
+          // A pothole in a lane that looks like a free alternative. Never in the
+          // one lane you're forced to use.
+          add(lane, POTHOLE, open);
+        }
       }
       g.openLane = open;
       return tallest;
+    };
+
+    const seed1000 = () => Math.floor(Math.random() * 1000);
+    const endPasser = () => {
+      g.passer = null;
+      g.nextPasser = Math.max(2.5, 7 - g.runTime * 0.06) + Math.random() * 4;
     };
 
     const update = (dt: number) => {
@@ -443,60 +551,112 @@ export default function BikeLaneGame() {
       g.speed = Math.min(540, 230 + g.runTime * 7);
       const step = g.speed * dt;
       g.dist += step;
-      if (g.lane === BIKE_LANE) g.inLane += dt;
+      if (g.wobble > 0) g.wobble -= dt;
+      const here = zoneHere();
+      if (g.lane === BIKE_LANE && here !== "nolane") g.inLane += dt;
+      if (g.lane === BIKE_LANE && here === "protected") g.bonus += step; // protected lanes count double
       g.x += (LANES[g.lane] - g.x) * Math.min(1, dt * 18);
 
+      // Special stretches: a protected lane, or the bike lane ending for a while.
+      // Each starts just beyond the top of the screen and scrolls into view.
+      if (!g.zone) {
+        g.nextZone -= dt;
+        if (g.nextZone <= 0 && !g.passer) {
+          const type: Zone["type"] = g.lastZone === "protected" ? "nolane" : "protected";
+          const a = g.dist + PLAYER_Y + 180;
+          g.zone = { type, a, b: a + g.speed * (type === "protected" ? 6 : 7) };
+          g.lastZone = type;
+        }
+      } else if (g.dist > g.zone.b + 160) {
+        g.zone = null;
+        g.nextZone = 12 + Math.random() * 8;
+      }
+
       g.nextRow -= step;
-      if (g.nextRow <= 0) {
+      // No new rows while a car is about to turn across the road
+      if (g.nextRow <= 0 && !(g.passer && g.passer.hook)) {
         // Clear road after this row's longest obstacle, so there's always
         // room to change lanes before the next row arrives
         const tallest = spawnRow();
         g.nextRow = tallest + Math.max(150, 250 - g.runTime * 2.5);
       }
 
-      for (const o of g.obstacles) o.y += step;
+      for (const o of g.obstacles) {
+        o.y += step;
+        if (o.door !== undefined && o.y > PLAYER_Y - DOOR_OPENS_AT && o.door < 1) {
+          if (o.door === 0) beep(900, 0.04);
+          o.door = Math.min(1, o.door + dt / 0.12);
+        }
+      }
       g.obstacles = g.obstacles.filter((o) => o.y - o.kind.h / 2 < H + 20);
 
       // Cars from behind. One only sets off when the traffic lane ahead is
       // empty and no upcoming row forces you into it, so it's always avoidable.
-      if (!g.passer) {
+      const p = g.passer;
+      if (!p) {
         g.nextPasser -= dt;
         if (g.nextPasser <= 0) {
-          const ahead = g.obstacles.filter((o) => o.y - o.kind.h / 2 < PLAYER_Y + 40);
+          const ahead = g.obstacles.filter((o) => !o.kind.soft && o.y - o.kind.h / 2 < PLAYER_Y + 40);
           if (ahead.some((o) => o.lane === 0 || o.rowOpen === 0) || g.openLane === 0) {
             g.nextPasser = 0.4; // not safe yet; check again shortly
           } else {
-            g.passer = { phase: "warn", timer: PASSER_WARNING, y: H + PASSER_H, seed: Math.floor(Math.random() * 1000) };
+            const hook = !g.zone && (g.force === "hook" || (g.runTime > 20 && Math.random() < 0.35));
+            g.passer = { phase: "warn", timer: PASSER_WARNING, x: LANES[0], y: H + PASSER_H, seed: seed1000(), hook, turn: 0 };
             beep(233, 0.16);
             setTimeout(() => beep(233, 0.3), 220);
           }
         }
-      } else if (g.passer.phase === "warn") {
-        g.passer.timer -= dt;
-        if (g.passer.timer <= 0) g.passer.phase = "go";
-      } else {
-        g.passer.y -= PASSER_SPEED * dt;
-        if (g.passer.y < -PASSER_H) {
-          g.passer = null;
-          g.nextPasser = Math.max(2.5, 7 - g.runTime * 0.06) + Math.random() * 4;
+      } else if (p.phase === "warn") {
+        p.timer -= dt;
+        if (p.timer <= 0) p.phase = "go";
+      } else if (p.phase === "go") {
+        p.y -= PASSER_SPEED * dt;
+        // A hook starts its turn just far enough ahead to cross your path
+        if (p.hook && p.y <= PLAYER_Y - HOOK_AHEAD) {
+          p.phase = "turn";
+          beep(700, 0.06);
         }
+        if (p.y < -PASSER_H) endPasser();
+      } else {
+        p.turn += step; // road distance since it began turning
+        p.x += HOOK_DRIFT * step;
+        p.y += step; // it's leaving the road, so it drifts back toward you
+        if (p.x > W + PASSER_H || p.y > H + PASSER_H) endPasser();
       }
 
       // Collisions, with slightly forgiving hitboxes
       for (const o of g.obstacles) {
-        const dx = Math.abs(LANES[o.lane] - g.x);
+        const dx = Math.abs((o.x ?? LANES[o.lane]) - g.x);
         const dy = Math.abs(o.y - PLAYER_Y);
-        if (dx < o.kind.w / 2 + 13 - 8 && dy < o.kind.h / 2 + 26 - 8) {
+        const touching = dx < o.kind.w / 2 + 13 - 8 && dy < o.kind.h / 2 + 26 - 8;
+        if (o.kind.soft) {
+          if (touching && !o.hit) {
+            o.hit = true;
+            g.wobble = 0.7;
+            g.shake = 0.12;
+            beep(120, 0.22, "sawtooth", 55);
+          }
+          continue;
+        }
+        if (touching) {
           crash(o.kind.epitaph);
           return;
         }
+        if (o.door !== undefined && o.door > 0.6) {
+          const doorX = (o.x ?? LANES[o.lane]) - o.kind.w / 2 - DOOR_LEN / 2;
+          if (Math.abs(doorX - g.x) < DOOR_LEN / 2 + 13 - 8 && Math.abs(o.y - 14 - PLAYER_Y) < 6 + 26 - 8) {
+            crash(o.kind.epitaph);
+            return;
+          }
+        }
       }
       const pc = g.passer;
-      if (pc && pc.phase === "go") {
-        const dx = Math.abs(LANES[0] - g.x);
-        const dy = Math.abs(pc.y - PLAYER_Y);
-        if (dx < PASSER_W / 2 + 13 - 8 && dy < PASSER_H / 2 + 26 - 8) {
-          crash(PASSER_EPITAPHS[pc.seed % PASSER_EPITAPHS.length]);
+      if (pc && pc.phase !== "warn") {
+        const sideways = pc.phase === "turn" && pc.turn > 30;
+        const halfW = (sideways ? PASSER_H : PASSER_W) / 2;
+        const halfH = (sideways ? PASSER_W : PASSER_H) / 2;
+        if (Math.abs(pc.x - g.x) < halfW + 13 - 8 && Math.abs(pc.y - PLAYER_Y) < halfH + 26 - 8) {
+          crash(pc.phase === "turn" ? HOOK_EPITAPH : PASSER_EPITAPHS[pc.seed % PASSER_EPITAPHS.length]);
         }
       }
     };
@@ -564,8 +724,49 @@ export default function BikeLaneGame() {
       }
     };
 
+    // Road markings for a protected stretch or a stretch with no bike lane
+    const drawZone = () => {
+      const z = g.zone;
+      if (!z) return;
+      const toY = (along: number) => PLAYER_Y - (along - g.dist);
+      const yTop = toY(z.b);
+      const yBot = toY(z.a);
+      if (yBot < -40 || yTop > H + 40) return;
+      const y0 = Math.max(-10, yTop);
+      const y1 = Math.min(H + 10, yBot);
+      const banner = (y: number, label: string, fill: string, ink: string) => {
+        if (y < -20 || y > H + 20) return;
+        box(c, LANES[BIKE_LANE] - 57, y - 13, 114, 26, 5, fill, 2.5);
+        text(c, label, LANES[BIKE_LANE], y + 1, 11.5, ink);
+      };
+      if (z.type === "nolane") {
+        if (y1 > y0) {
+          c.fillStyle = "#4A4E57"; // the green paint just stops
+          c.fillRect(LANE_W - 3, y0, LANE_W + 3, y1 - y0);
+          c.fillStyle = "#FFFFFF";
+          for (let along = Math.ceil(z.a / 50) * 50; along < z.b; along += 50) {
+            const y = toY(along);
+            if (y > -30 && y < H + 30) c.fillRect(LANE_W - 2, y - 24, 4, 24);
+          }
+        }
+        banner(yBot, "BIKE LANE ENDS", "#FF8A00", "#111");
+        banner(yTop, "BIKE LANE", "#FFFFFF", "#1F5A38");
+      } else {
+        for (let along = Math.ceil(z.a / 44) * 44; along < z.b; along += 44) {
+          const y = toY(along);
+          if (y < -10 || y > H + 10) continue;
+          for (const x of [LANE_W + 8, LANE_W * 2 - 8]) {
+            dot(c, x, y, 5, "#FFFFFF", 2);
+            dot(c, x, y, 2, "#FF8A00", 0);
+          }
+        }
+        banner(yBot, "PROTECTED · 2X", INK, "#FFD23F");
+        banner(yTop, "PROTECTION ENDS", "#FF8A00", "#111");
+      }
+    };
+
     const drawRider = () => {
-      const lean = (LANES[g.lane] - g.x) * 0.012;
+      const lean = (LANES[g.lane] - g.x) * 0.012 + (g.wobble > 0 ? Math.sin(g.t * 45) * 0.3 : 0);
       c.save();
       c.translate(g.x, PLAYER_Y);
       c.rotate(lean);
@@ -620,31 +821,68 @@ export default function BikeLaneGame() {
       }
 
       drawStreet();
+      drawZone();
       for (const o of g.obstacles) {
         c.save();
-        c.translate(LANES[o.lane], o.y);
+        c.translate(o.x ?? LANES[o.lane], o.y);
         o.kind.draw(c, g.t, o.seed);
+        if (o.door !== undefined) {
+          // The door: hinged at the front, slightly ajar as a tell, then flung open
+          const ajar = o.y > 30 ? 0.1 + Math.sin(g.t * 18) * 0.04 : 0;
+          c.translate(-o.kind.w / 2, -14);
+          c.rotate(Math.max(o.door, ajar) * (Math.PI / 2));
+          box(c, -4, 0, 8, DOOR_LEN, 3, "#F2F2F2", 2.5);
+        }
         c.restore();
       }
-      if (g.passer && g.passer.phase === "go") {
+      const pd = g.passer;
+      if (pd && pd.phase !== "warn") {
         c.save();
-        c.translate(LANES[0], g.passer.y);
-        drawPasser(c, g.passer.seed);
+        c.translate(pd.x, pd.y);
+        if (pd.phase === "turn") c.rotate(Math.min(1, pd.turn / 60) * (Math.PI / 2));
+        drawPasser(c, pd.seed);
+        if (pd.hook) {
+          // right turn signal
+          const on = Math.floor(g.t * 6) % 2 === 0 ? "#FF9D00" : "#7A4B00";
+          for (const sy of [-1, 1]) dot(c, PASSER_W / 2 - 5, sy * (PASSER_H / 2 - 8), 5.5, on, 1.5);
+        }
         c.restore();
+        if (pd.hook && pd.phase === "go" && Math.floor(g.t * 6) % 2 === 0) {
+          // an arrow showing where it's about to go
+          c.beginPath();
+          c.moveTo(pd.x + 44, pd.y - 16);
+          c.lineTo(pd.x + 72, pd.y);
+          c.lineTo(pd.x + 44, pd.y + 16);
+          c.closePath();
+          c.fillStyle = "#FF9D00";
+          c.fill();
+          c.lineWidth = 2.5;
+          c.strokeStyle = "#111";
+          c.stroke();
+        }
       }
       if (g.mode !== "title") drawRider();
+      if (g.wobble > 0 && g.mode === "play") {
+        box(c, g.x - 44, PLAYER_Y - 64, 88, 22, 6, "#111", 0);
+        text(c, "POTHOLE!", g.x, PLAYER_Y - 52, 14, "#FFD23F");
+      }
       // Warning at the bottom of the traffic lane while a car is on its way
       if (g.passer && g.passer.phase === "warn" && g.mode === "play") {
         const on = Math.floor(g.t * 7) % 2 === 0;
-        box(c, LANES[0] - 46, H - 64, 92, 52, 10, on ? "#FF3B3B" : "#7A1010", 3);
+        const hook = g.passer.hook;
+        box(c, LANES[0] - 50, H - 64, 100, 52, 10, on ? (hook ? "#FF8A00" : "#FF3B3B") : hook ? "#8A4A00" : "#7A1010", 3);
         text(c, "HONK!", LANES[0], H - 47, 19, "#FFF");
-        text(c, "CAR BEHIND", LANES[0], H - 26, 11, "#FFF");
+        text(c, hook ? "TURNING RIGHT" : "CAR BEHIND", LANES[0], H - 26, 11, "#FFF");
       }
 
       if (g.mode === "play") {
-        const blocks = Math.floor(g.dist / BLOCK);
+        const blocks = blocksNow();
         box(c, 8, 8, 132, 34, 8, "#111", 0);
         text(c, `BLOCKS: ${blocks}`, 18, 26, 20, "#FFD23F", "left");
+        if (g.lane === BIKE_LANE && zoneHere() === "protected") {
+          box(c, 146, 10, 44, 30, 8, "#FFD23F", 2.5);
+          text(c, "2X", 168, 26, 18, "#111");
+        }
         box(c, W - 108, 8, 100, 34, 8, "#111", 0);
         text(c, `BEST: ${best}`, W - 18, 26, 20, "#FFF", "right");
         if (g.runTime < 3.5) {
@@ -680,7 +918,7 @@ export default function BikeLaneGame() {
         text(c, "WIPEOUT!", 0, 0, 58, "#FF4B3E");
         c.restore();
 
-        const blocks = Math.floor(g.dist / BLOCK);
+        const blocks = blocksNow();
         const pct = g.runTime > 0 ? Math.round((g.inLane / g.runTime) * 100) : 0;
         panel(158, 290);
         const used = wrapped(c, g.epitaph, W / 2, 190, W - 84, 18, INK);
