@@ -3,7 +3,8 @@ import Chat from "@/components/Chat";
 
 export default function Home() {
   return (
-    <div className="space-y-8">
+    <div className="max-w-2xl mx-auto space-y-8 md:max-w-none md:grid md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] md:gap-10 md:items-start md:space-y-0">
+      <div className="space-y-8 md:pt-4">
       <header>
         <h1 className="font-display font-extrabold text-5xl sm:text-6xl leading-[0.95] tracking-tight">
           Hi, I&apos;m Russell.
@@ -13,8 +14,6 @@ export default function Home() {
           and disappointed Georgia Tech fan.
         </p>
       </header>
-
-      <Chat />
 
       <Link
         href="/bike-lane"
@@ -28,6 +27,9 @@ export default function Home() {
           Play →
         </span>
       </Link>
+      </div>
+
+      <Chat />
     </div>
   );
 }

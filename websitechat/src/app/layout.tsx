@@ -20,10 +20,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${display.variable} ${mono.variable}`}>
       <body className="min-h-dvh flex flex-col font-sans text-ink">
-        <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 pt-10 sm:pt-16 pb-12">
+        <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-8">
           {children}
         </main>
-        <footer className="w-full max-w-2xl mx-auto px-4 sm:px-6 pb-8 flex items-center justify-between text-sm text-ink/70">
+        <footer className="w-full max-w-5xl mx-auto px-4 sm:px-6 pb-8 flex items-center justify-between text-sm text-ink/70">
           <span>Russell Apple</span>
           <a
             href="https://www.linkedin.com/in/russellapple/"

@@ -18,3 +18,12 @@ body {
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
+
+/* Scrolls with the wheel or touch, but without a visible scrollbar */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 // ---------------------------------------------------------------------------
@@ -1066,14 +1067,18 @@ export default function BikeLaneGame() {
   }, []);
 
   return (
-    <div className="w-full max-w-[400px] mx-auto">
+    <div className="w-full max-w-[400px] mx-auto md:max-w-none md:flex md:justify-center md:items-start md:gap-8">
+      <div className="md:shrink-0">
       <canvas
         ref={canvasRef}
-        className="block w-full rounded-xl border-2 border-ink shadow-hard bg-black select-none"
+        className="block w-full md:w-auto md:h-[min(622px,calc(100dvh-11rem))] rounded-xl border-2 border-ink shadow-hard bg-black select-none"
         style={{ aspectRatio: `${W} / ${H}`, touchAction: "none" }}
         aria-label="Lane Closed, a bike lane game. Use the left and right arrow keys to swerve."
       />
-      <div className="mt-4 flex justify-end">
+      <div className="mt-3 flex items-center justify-between">
+        <Link href="/" className="label underline decoration-gold decoration-2 underline-offset-4 hover:decoration-ink">
+          ← Back
+        </Link>
         <button
           onClick={() => setMuted((m) => !m)}
           className="label rounded-lg border-2 border-ink bg-paper px-3 py-1.5 shadow-hard-sm active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
@@ -1082,9 +1087,10 @@ export default function BikeLaneGame() {
           Sound: {muted ? "off" : "on"}
         </button>
       </div>
+      </div>
 
       {board && (
-        <section className="mt-6 rounded-xl border-2 border-ink bg-white shadow-hard overflow-hidden" aria-label="Leaderboard">
+        <section className="no-scrollbar mt-6 md:mt-0 md:w-72 md:shrink-0 md:max-h-[calc(100dvh-11rem)] md:overflow-y-auto rounded-xl border-2 border-ink bg-white shadow-hard overflow-hidden" aria-label="Leaderboard">
           <h2 className="label px-4 py-2.5 border-b-2 border-ink bg-paper">High scores</h2>
 
           {lastRun !== null && lastRun > 0 && submitState !== "sent" && (

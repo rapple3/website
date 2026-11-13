@@ -69,7 +69,7 @@ export default function Chat() {
   const showTypingIndicator = isLoading && !replyStarted;
 
   return (
-    <section className="flex flex-col h-[34rem] max-h-[78dvh] bg-white rounded-xl border-2 border-ink shadow-hard overflow-hidden">
+    <section className="flex flex-col h-[34rem] max-h-[78dvh] md:h-[min(40rem,calc(100dvh-9rem))] md:max-h-none bg-white rounded-xl border-2 border-ink shadow-hard overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 border-b-2 border-ink bg-paper">
         <img
           src="/Headshot_small.jpg"
@@ -84,7 +84,7 @@ export default function Chat() {
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={scrollRef} className="no-scrollbar flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
           <div className="grid grid-cols-1 gap-2">
             <p className="label text-ink/60 mb-1">Try asking</p>
